@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="BioDog.io Neural Engine", version="2.8.1")
+app = FastAPI(title="BioDog.io Neural Engine", version="2.8.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -72,15 +72,14 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO):
 
 def _extract_clean_json(raw_text: str) -> dict:
     cleaned = raw_text.strip()
-    if "
-```" in cleaned:
-        match = re.search(r"
-```(?:json)?\s*(\{.*?\})\s*```", cleaned, re.DOTALL)
-        if match:
-            cleaned = match.group(1)
-        else:
-            cleaned = cleaned.replace("
-```json", "").replace("```", "").strip()
+    
+    # Trucco per evitare di scrivere i backtick espliciti nel codice e rompere il tablet
+    marker = chr(96) * 3
+    
+    if marker in cleaned:
+        cleaned = cleaned.replace(marker + "json", "")
+        cleaned = cleaned.replace(marker, "")
+        cleaned = cleaned.strip()
 
     start = cleaned.find("{")
     end = cleaned.rfind("}")
@@ -143,15 +142,7 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
 async def transduce(req: TransductionRequest):
     bio = SensoryEngine.compute(req)
 
-    user_prompt = f"""{SYSTEM_PROMPT}
-
-Comportamento osservato: "{req.user_text}"
-Profilo biologico:
-- Cranio: {req.snout} (Turbinati olfattivi: {bio['turbinates_cm2']} cm²)
-- Campo Visivo: {bio['fov_degrees']}° (Acuità: {bio['acuity_cpd']} cpd)
-- Occhi da terra: {bio['eye_height_cm']} cm
-- Coda: {bio['tail_bias']}
-- Orecchie: {bio['ear_mobility']}"""
+    user_prompt = f"""{SYSTEM_PROMPT}\n\nComportamento osservato: "{req.user_text}"\nProfilo biologico:\n- Cranio: {req.snout} (Turbinati olfattivi: {bio['turbinates_cm2']} cm²)\n- Campo Visivo: {bio['fov_degrees']}° (Acuità: {bio['acuity_cpd']} cpd)\n- Occhi da terra: {bio['eye_height_cm']} cm\n- Coda: {bio['tail_bias']}\n- Orecchie: {bio['ear_mobility']}"""
 
     synth, api_err, used_model = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, user_prompt)
 
