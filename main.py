@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="BioDog.io Neural Engine", version="2.6.0")
+app = FastAPI(title="BioDog.io Neural Engine", version="2.7.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'").replace("[", "").replace("]", "")
 
 # ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
@@ -31,7 +31,7 @@ class TransductionRequest(BaseModel):
     tail: str = Field(default="long")
     observed_time_hours: Optional[float] = 0.0
 
-# ==================== CALCOLO SENSORIALE FISICO ====================
+# ==================== CALCOLO SENSORIALE ====================
 class SensoryEngine:
     @staticmethod
     def compute(req: TransductionRequest):
@@ -53,17 +53,17 @@ class SensoryEngine:
 SYSTEM_PROMPT = """Sei il motore di intelligenza artificiale biologica BioDog.io.
 Trasduci il comportamento del cane descritto dall'umano nella prospettiva etologica e percettiva del cane (Umwelt di Jakob von Uexküll).
 
-REGOLE CRITICHE (ANTI-ANTROPOMORFISMO DPO):
-1. DIVIETO ASSOLUTO di attribuire concetti morali umani: dispetto, vendetta, senso di colpa, prevaricazione etica o dominio gerarchico alfa.
+REGOLE CRITICHE (ANTI-ANTROPOMORFISMO):
+1. DIVIETO ASSOLUTO di attribuire concetti morali umani: dispetto, vendetta, senso di colpa, prevaricazione etica.
 2. Radica sempre il comportamento nei 7 circuiti emotivi primari di Jaak Panksepp: SEEKING, RAGE, FEAR, PANIC/GRIEF, PLAY, CARE, LUST.
-3. Considera le costanti morfologiche (olfatto, campo visivo, altezza occhi) per determinare la reattività.
+3. Considera le costanti morfologiche (olfatto, campo visivo, altezza occhi).
 4. Genera ESCLUSIVAMENTE un JSON valido (senza testo introduttivo o markdown) con questa struttura esatta:
 {
   "situation_title": "Titolo etologico breve",
   "panksepp": "CARE | RAGE | FEAR | PANIC/GRIEF | PLAY | SEEKING | LUST",
   "arousal": numero intero da 0 a 100,
   "valence": numero intero da -50 a +50,
-  "thought": "pensiero del cane in prima persona: rapido, sensoriale (odori, suoni, distanze, posture), privo di morale umana",
+  "thought": "pensiero del cane in prima persona: rapido, sensoriale, privo di morale umana",
   "explanation": "spiegazione etologica chiara per il proprietario",
   "steps": ["passo 1 concreto da fare subito", "passo 2", "passo 3"],
   "forbidden": ["errore 1 da non commettere", "errore 2"]
@@ -89,7 +89,6 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
     if not api_key:
         return None, "Chiave API mancante", "none"
 
-    # Lista corazzata dei modelli Google (dal più aggiornato al più generico)
     models = [
         "gemini-1.5-flash-latest",
         "gemini-1.5-flash-8b",
@@ -98,9 +97,15 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
     ]
     
     last_err = "Errore sconosciuto"
+    
+    # TRUCCO ANTI-TABLET: Spezziamo l'URL in blocchi di testo separati.
+    pt = "https"
+    dm = "generativelanguage.googleapis.com"
 
     for m in models:
-        url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){m}:generateContent?key={api_key}"
+        # Costruiamo l'indirizzo al volo, così il tablet non lo riconosce durante il copia-incolla
+        url = f"{pt}://{dm}/v1beta/models/{m}:generateContent?key={api_key}"
+        
         payload = {
             "contents": [{"parts": [{"text": full_prompt}]}],
             "generationConfig": {"temperature": 0.2}
@@ -121,10 +126,6 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
                     return _extract_clean_json(text), None, m
         except urllib.error.HTTPError as he:
             last_err = f"{m} HTTP {he.code}"
-            # Se è errore 403 la chiave è sbagliata, fermiamo subito
-            if he.code == 403:
-                return None, "HTTP 403: Chiave API di Google non valida", m
-            # Altrimenti (es 404) proviamo il prossimo modello
             continue
         except Exception as e:
             last_err = f"{m} Eccezione: {str(e)}"
@@ -156,10 +157,10 @@ Profilo biologico:
         synth = {
             "situation_title": "Valutazione Etologica",
             "panksepp": "SEEKING", "arousal": 50, "valence": 10,
-            "thought": f"Analizzo la situazione '{req.user_text}' con i miei sensi.",
-            "explanation": f"Elaborazione locale di sicurezza (Dettaglio API: {api_err}).",
-            "steps": ["Osserva la postura generale.", "Mantieni calma e spazio vitale."],
-            "forbidden": ["Evita rimproveri immotivati."]
+            "thought": f"Scansione in corso per '{req.user_text}'.",
+            "explanation": f"Fallback attivo (Dettaglio: {api_err}).",
+            "steps": ["Osserva la postura generale."],
+            "forbidden": ["Evita reazioni improvvise."]
         }
 
     return {
