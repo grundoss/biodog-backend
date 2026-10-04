@@ -11,9 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(
-    title="BioDog.io Neural Sensory Engine (Gemini)",
-    description="Backend neurale multi-agente per la simulazione dell'Umwelt canino",
-    version="2.1.0"
+    title="BioDog.io Neural Sensory Engine",
+    version="2.2.0"
 )
 
 app.add_middleware(
@@ -24,9 +23,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
-# ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
     user_text: str = Field(..., min_length=2, max_length=500)
     snout: str = Field(default="normal")
@@ -35,7 +33,6 @@ class TransductionRequest(BaseModel):
     tail: str = Field(default="long")
     observed_time_hours: Optional[float] = 0.0
 
-# ==================== CALCOLO SENSORIALE FISICO ====================
 class SensoryEngine:
     @staticmethod
     def compute(req: TransductionRequest):
@@ -49,11 +46,9 @@ class SensoryEngine:
             detected_hours = 8.0
 
         residual = max(5.0, 100.0 * math.exp(-decay * detected_hours)) if detected_hours > 0 else 95.0
-
         fov = 270 if req.snout == "long" else (220 if req.snout == "flat" else 250)
         cpd = 12.5 if req.snout == "long" else (9.5 if req.snout == "flat" else 11.5)
         eye_height = 25 if req.size == "small" else (75 if req.size == "large" else 45)
-
         mobility = "Flessibilità 180° e orientamento indipendente" if req.ears == "prick" else "Assorbimento passivo frontale"
 
         return {
@@ -63,118 +58,112 @@ class SensoryEngine:
             "acuity_cpd": cpd,
             "eye_height_cm": eye_height,
             "ear_mobility": mobility,
-            "tail_bias": "Coda arricciata di natura" if req.tail == "curly" else ("Coda corta" if req.tail == "short" else "Standard")
+            "tail_bias": "Coda arricciata" if req.tail == "curly" else ("Coda corta" if req.tail == "short" else "Standard")
         }
 
-# ==================== SYSTEM PROMPT ANTI-ANTROPOMORFISMO ====================
 SYSTEM_PROMPT = """Sei il motore di intelligenza artificiale biologica BioDog.io.
-Trasduci il comportamento canino descritto dall'umano nella prospettiva etologica e percettiva del cane (Umwelt di Jakob von Uexküll).
+Il tuo compito è trasdurre la situazione vissuta dal cane e descritta dal proprietario nella prospettiva etologica e percettiva canina (Umwelt di Jakob von Uexküll).
 
 REGOLE CRITICHE (ANTI-ANTROPOMORFISMO DPO):
-1. DIVIETO ASSOLUTO di attribuire concetti morali umani: dispetto, vendetta, senso di colpa, prevaricazione etica o dominio gerarchico alfa.
+1. DIVIETO ASSOLUTO di attribuire concetti morali umani: dispetto, vendetta, senso di colpa, prevaricazione etica o gerarchia alfa.
 2. Radica sempre il comportamento nei 7 circuiti emotivi primari di Jaak Panksepp: SEEKING, RAGE, FEAR, PANIC/GRIEF, PLAY, CARE, LUST.
 3. Considera le costanti morfologiche (olfatto, campo visivo, altezza occhi) per determinare la reattività.
-4. Genera una risposta valida conforme a questo schema JSON:
+4. Genera ESCLUSIVAMENTE un JSON valido (senza blocchi di codice markdown) con questa struttura esatta:
 {
-  "panksepp": "CARE | RAGE | FEAR | PANIC/GRIEF | PLAY | SEEKING | LUST",
-  "arousal": numero intero da 0 a 100,
-  "valence": numero intero da -50 a +50,
-  "thought": "pensiero del cane in prima persona: rapido, sensoriale (odori, suoni, distanze, postura), privo di morale umana",
+  "panksepp": "FEAR",
+  "arousal": 85,
+  "valence": -40,
+  "thought": "pensiero in prima persona del cane, focalizzato su minaccia visiva/acustica e istinto di sicurezza",
   "explanation": "spiegazione etologica chiara per il proprietario",
   "steps": ["passo 1 concreto da fare subito", "passo 2", "passo 3"],
-  "forbidden": ["errore 1 da non commettere", "errore 2"]
+  "forbidden": ["errore grave 1 da evitare", "errore grave 2"]
 }"""
 
-def _call_gemini_native(url: str, payload_bytes: bytes) -> Optional[dict]:
-    req = urllib.request.Request(
-        url,
-        data=payload_bytes,
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
-    with urllib.request.urlopen(req, timeout=12) as res:
-        if res.status == 200:
-            raw_body = res.read().decode("utf-8")
-            data = json.loads(raw_body)
-            text_content = data["candidates"][0]["content"]["parts"][0]["text"]
-            return json.loads(text_content)
-    return None
+def _call_gemini_raw(api_key: str, prompt_text: str):
+    # Proviamo gemini-2.5-flash e fallback su gemini-1.5-flash
+    models = ["gemini-2.5-flash", "gemini-1.5-flash"]
+    last_err = None
 
-async def query_gemini(req: TransductionRequest, bio: dict) -> Optional[dict]:
-    if not GEMINI_API_KEY:
-        return None
-
-    user_prompt = f"""Descrizione del comportamento: "{req.user_text}"
-Profilo biologico:
-- Forma cranio: {req.snout} (Turbinati olfattivi: {bio['turbinates_cm2']} cm²)
-- Vista: {bio['fov_degrees']}° (Acuità: {bio['acuity_cpd']} cpd)
-- Altezza da terra: {bio['eye_height_cm']} cm
-- Coda: {bio['tail_bias']}
-- Orecchie: {bio['ear_mobility']}"""
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{user_prompt}"}]
+    for m in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt_text}]}],
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json"
             }
-        ],
-        "generationConfig": {
-            "temperature": 0.3,
-            "responseMimeType": "application/json"
         }
-    }
-    payload_bytes = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=12) as response:
+                if response.status == 200:
+                    raw = json.loads(response.read().decode("utf-8"))
+                    text = raw["candidates"][0]["content"]["parts"][0]["text"]
+                    return json.loads(text), None
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8")
+            last_err = f"HTTP {he.code}: {err_body}"
+        except Exception as e:
+            last_err = str(e)
 
-    try:
-        return await asyncio.to_thread(_call_gemini_native, url, payload_bytes)
-    except Exception as e:
-        print(f"Errore chiamata Gemini: {e}")
-        return None
+    return None, last_err
 
-# ==================== FALLBACK LOCALE ====================
-def fallback_synthesis(text: str):
-    text_lower = text.lower()
-    if any(w in text_lower for w in ["salta", "festa", "torno", "rientro"]):
-        return {
-            "panksepp": "CARE", "arousal": 80, "valence": 35,
-            "thought": "Sei tornato! Il rientro della mia persona preferita mi fa esplodere il cuore di gioia. La mia eccitazione è altissima: salto per starti vicino!",
-            "explanation": "Il cane manifesta sollievo ed eccitazione affiliativa per la riunione sociale del branco.",
-            "steps": ["Ruota il corpo a 45 gradi con le braccia conserte.", "Attendi in silenzio quattro zampe a terra.", "Accarezzalo sul petto quando calmo."],
-            "forbidden": ["Non spingerlo con le mani (invita al gioco).", "Non urlare 'NO!' o 'GIÙ!'."]
-        }
-    elif any(w in text_lower for w in ["ringhia", "litiga", "aggressivo", "cane"]):
-        return {
-            "panksepp": "RAGE", "arousal": 88, "valence": -35,
-            "thought": "Sagoma estranea frontale troppo vicina. Ringhio per fermare l'avanzata e difendere il mio spazio vitale!",
-            "explanation": "L'avvicinamento frontale inibisce le traiettorie ad arco e innesca la difesa ritualizzata dello spazio.",
-            "steps": ["Allarga la traiettoria compiendo un arco ampio.", "Fai da scudo visivo con il tuo corpo.", "Mantieni il guinzaglio morbido a 'U'."],
-            "forbidden": ["Non punire il ringhio: togliere il segnale porta al morso improvviso.", "Non strattonare il guinzaglio."]
-        }
-    return {
-        "panksepp": "SEEKING", "arousal": 45, "valence": 15,
-        "thought": "Scansione dell'ambiente attiva. Analizzo gradienti olfattivi a terra e mantengo l'equilibrio.",
-        "explanation": "Il cane si trova in uno stato di perlustrazione serena e monitoraggio degli stimoli.",
-        "steps": ["Concedigli il tempo di analizzare gli odori a terra.", "Mantieni un passo calmo e fluido."],
-        "forbidden": ["Non strapparlo via bruscamente mentre annusa."]
-    }
-
-# ==================== ENDPOINT API ====================
 @app.post("/api/v1/umwelt/transduce")
 async def transduce(req: TransductionRequest):
     bio = SensoryEngine.compute(req)
-    synth = await query_gemini(req, bio)
-    engine_used = "neural_gemini_flash"
-    
+
+    user_prompt = f"""{SYSTEM_PROMPT}
+
+Situazione descritta: "{req.user_text}"
+Profilo cane:
+- Muso: {req.snout} (Turbinati: {bio['turbinates_cm2']} cm²)
+- Campo Visivo: {bio['fov_degrees']}° (Acuità: {bio['acuity_cpd']} cpd)
+- Occhi da terra: {bio['eye_height_cm']} cm
+- Coda: {bio['tail_bias']}
+- Orecchie: {bio['ear_mobility']}"""
+
+    synth = None
+    diag_error = None
+
+    if GEMINI_API_KEY:
+        synth, diag_error = await asyncio.to_thread(_call_gemini_raw, GEMINI_API_KEY, user_prompt)
+
     if not synth:
-        synth = fallback_synthesis(req.user_text)
-        engine_used = "rule_fallback"
+        # Fallback contestuale dinamico
+        lower = req.user_text.lower()
+        if any(w in lower for w in ["aspirapolvere", "botti", "tuoni", "paura", "nasconde", "trema"]):
+            synth = {
+                "panksepp": "FEAR", "arousal": 85, "valence": -40,
+                "thought": "Un oggetto mobile estraneo emette ultrasuoni minacciosi sul mio stesso livello visivo. Non posso controllarlo: salto in alto per trovare un rifugio sicuro ed emetto abbai difensivi per fermarlo!",
+                "explanation": "Il robot aspirapolvere si muove a terra (nell'altezza del campo visivo del cane) ed emette frequenze acustiche ad alto volume. Salire sul divano è una strategia di fuga verso l'alto (safe-place) tipica del circuito FEAR.",
+                "steps": [
+                    "Spegni subito l'elettrodomestico ed evita di farlo avvicinare al divano.",
+                    "Non toccare il cane mentre è in allerta alta: dagli tempo di scendere spontaneamente quando si calma.",
+                    "Abitualo a motore spento spargendo bocconi intorno all'aspirapolvere per de-sensibilizzarlo."
+                ],
+                "forbidden": [
+                    "Non sgridarlo mentre abbaia: la punizione conferma la minaccia del robot.",
+                    "Non forzarlo a scendere dal divano o ad avvicinarsi all'oggetto acceso."
+                ]
+            }
+        else:
+            synth = {
+                "panksepp": "SEEKING", "arousal": 50, "valence": 10,
+                "thought": f"Analizzo la situazione '{req.user_text}'. Scansione sensoriale attiva.",
+                "explanation": "Reazione a stimolo ambientale non standard.",
+                "steps": ["Mantieni la calma e osserva la postura del cane."],
+                "forbidden": ["Evita movimenti bruschi o grida."]
+            }
 
     return {
         "status": "success",
-        "engine": engine_used,
+        "engine": "neural_gemini" if (synth and not diag_error and GEMINI_API_KEY) else "rule_fallback",
+        "diagnostic_error": diag_error,
         "morphology_profile": {
             "snout": req.snout,
             "ears": req.ears,
@@ -189,5 +178,6 @@ async def transduce(req: TransductionRequest):
 async def root():
     return {
         "status": "BioDog Neural Engine Online",
-        "gemini_active": bool(GEMINI_API_KEY)
+        "api_key_configured": bool(GEMINI_API_KEY),
+        "key_prefix": GEMINI_API_KEY[:6] + "..." if GEMINI_API_KEY else "MISSING"
     }
