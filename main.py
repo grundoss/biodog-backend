@@ -1,17 +1,19 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import List, Optional
+import json
 import math
+import os
 import re
+from typing import List, Optional
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import httpx
+from pydantic import BaseModel, Field
 
 app = FastAPI(
-    title="BioDog.io Neural Sensory Engine",
-    description="Backend multi-agente per la trasduzione dell'Umwelt canino",
-    version="1.0.0"
+    title="BioDog.io Neural Sensory Engine (Gemini)",
+    description="Backend neurale multi-agente per la simulazione dell'Umwelt canino",
+    version="2.1.0"
 )
 
-# Abilitazione CORS per consentire le chiamate da www.biodog.io
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,188 +22,162 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
 # ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
     user_text: str = Field(..., min_length=2, max_length=500)
-    snout: str = Field(default="normal")    # flat, normal, long
-    ears: str = Field(default="prick")      # prick, drop, long
-    size: str = Field(default="medium")     # small, medium, large
-    tail: str = Field(default="long")       # long, curly, short
+    snout: str = Field(default="normal")
+    ears: str = Field(default="prick")
+    size: str = Field(default="medium")
+    tail: str = Field(default="long")
     observed_time_hours: Optional[float] = 0.0
 
-# ==================== AGENTI SENSORIALI COCHAIN ====================
-class OlfactoryAgent:
+# ==================== CALCOLO SENSORIALE FISICO ====================
+class SensoryEngine:
     @staticmethod
-    def process(text: str, snout: str, hours: float):
-        turbinates = 170.0 if snout == "long" else (45.0 if snout == "flat" else 100.0)
+    def compute(req: TransductionRequest):
+        turbinates = 170.0 if req.snout == "long" else (45.0 if req.snout == "flat" else 100.0)
         decay = 0.35
-        detected_hours = hours
-        
-        match = re.search(r"(\d+)\s*(?:ore|ora|h)", text, re.IGNORECASE)
+        detected_hours = req.observed_time_hours or 0.0
+        match = re.search(r"(\d+)\s*(?:ore|ora|h)", req.user_text, re.IGNORECASE)
         if match:
             detected_hours = float(match.group(1))
-        elif re.search(r"tutto il giorno|sempre", text, re.IGNORECASE):
+        elif re.search(r"tutto il giorno|sempre", req.user_text, re.IGNORECASE):
             detected_hours = 8.0
 
-        if detected_hours > 0:
-            residual = max(5.0, 100.0 * math.exp(-decay * detected_hours))
-            delta = -(100.0 - residual)
-            desc = f"Decadimento esponenziale VOC umano su {detected_hours}h. Concentrazione residua al {residual:.1f}%."
-        else:
-            residual = 95.0
-            delta = 95.0
-            desc = "Saturazione molecolare al picco: transito chimico recente del referente umano."
+        residual = max(5.0, 100.0 * math.exp(-decay * detected_hours)) if detected_hours > 0 else 95.0
+
+        fov = 270 if req.snout == "long" else (220 if req.snout == "flat" else 250)
+        cpd = 12.5 if req.snout == "long" else (9.5 if req.snout == "flat" else 11.5)
+        eye_height = 25 if req.size == "small" else (75 if req.size == "large" else 45)
+
+        mobility = "Flessibilità 180° e orientamento indipendente" if req.ears == "prick" else "Assorbimento passivo frontale"
 
         return {
             "turbinates_cm2": turbinates,
-            "residual_density": round(residual, 1),
-            "delta_voc": round(delta, 1),
-            "description": desc
-        }
-
-class VisualAgent:
-    @staticmethod
-    def process(text: str, snout: str, size: str):
-        fov = 270 if snout == "long" else (220 if snout == "flat" else 250)
-        cpd = 12.5 if snout == "long" else (9.5 if snout == "flat" else 11.5)
-        eye_height = 25 if size == "small" else (75 if size == "large" else 45)
-        
-        motion_focus = "Scansione basale orizzontale."
-        if any(w in text.lower() for w in ["corre", "salta", "scatta", "bici", "gatto", "monopattino", "mosche"]):
-            motion_focus = "Priorità magnocellulare: tracking rapido del movimento periferico."
-
-        return {
+            "voc_residual_percent": round(residual, 1),
             "fov_degrees": fov,
             "acuity_cpd": cpd,
             "eye_height_cm": eye_height,
-            "motion_salience": motion_focus,
-            "spectrum": "Dicromatico attivo (429-555 nm: contrasto blu-giallo e assenza canale rosso)."
+            "ear_mobility": mobility,
+            "tail_bias": "Coda arricciata di natura" if req.tail == "curly" else ("Coda corta" if req.tail == "short" else "Standard")
         }
 
-class AcousticAgent:
-    @staticmethod
-    def process(text: str, ears: str):
-        text_lower = text.lower()
-        pitch_hz = 250.0
-        urgency = "Normale / Relazionale"
+# ==================== SYSTEM PROMPT ANTI-ANTROPOMORFISMO ====================
+SYSTEM_PROMPT = """Sei il motore di intelligenza artificiale biologica BioDog.io.
+Trasduci il comportamento canino descritto dall'umano nella prospettiva etologica e percettiva del cane (Umwelt di Jakob von Uexküll).
 
-        if any(w in text_lower for w in ["festa", "bravo", "bello", "amore", "gioia"]) or "!" in text:
-            pitch_hz = 420.0
-            urgency = "Bassa / Affiliativa (Dog-Directed Speech accogliente)"
-        elif any(w in text_lower for w in ["no", "smettila", "basta", "fermo", "ringhia"]):
-            pitch_hz = 110.0
-            urgency = "Alta / Allarme Minaccia (Frequenza aspramente grave < 150 Hz)"
-        elif any(w in text_lower for w in ["ulula", "piange", "solo"]):
-            pitch_hz = 550.0
-            urgency = "Distress Acuto / Richiamo a Lungo Raggio"
+REGOLE CRITICHE (ANTI-ANTROPOMORFISMO DPO):
+1. DIVIETO ASSOLUTO di attribuire concetti morali umani: dispetto, vendetta, senso di colpa, prevaricazione etica o dominio gerarchico alfa.
+2. Radica sempre il comportamento nei 7 circuiti emotivi primari di Jaak Panksepp: SEEKING, RAGE, FEAR, PANIC/GRIEF, PLAY, CARE, LUST.
+3. Considera le costanti morfologiche (olfatto, campo visivo, altezza occhi) per determinare la reattività.
+4. Genera una risposta valida conforme a questo schema JSON:
+{
+  "panksepp": "CARE | RAGE | FEAR | PANIC/GRIEF | PLAY | SEEKING | LUST",
+  "arousal": numero intero da 0 a 100,
+  "valence": numero intero da -50 a +50,
+  "thought": "pensiero del cane in prima persona: rapido, sensoriale (odori, suoni, distanze, postura), privo di morale umana",
+  "explanation": "spiegazione etologica chiara per il proprietario",
+  "steps": ["passo 1 concreto da fare subito", "passo 2", "passo 3"],
+  "forbidden": ["errore 1 da non commettere", "errore 2"]
+}"""
 
-        mobility = "Flessibilità 180° e scansione stereofonica indipendente" if ears == "prick" else "Assorbimento passivo frontale"
+async def query_gemini(req: TransductionRequest, bio: dict) -> dict:
+    if not GEMINI_API_KEY:
+        return None
+
+    user_prompt = f"""Descrizione del comportamento: "{req.user_text}"
+Profilo biologico:
+- Forma cranio: {req.snout} (Turbinati olfattivi: {bio['turbinates_cm2']} cm²)
+- Vista: {bio['fov_degrees']}° (Acuità: {bio['acuity_cpd']} cpd)
+- Altezza da terra: {bio['eye_height_cm']} cm
+- Coda: {bio['tail_bias']}
+- Orecchie: {bio['ear_mobility']}"""
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{user_prompt}"}]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.3,
+            "responseMimeType": "application/json"
+        }
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            res = await client.post(url, json=payload)
+            if res.status_code == 200:
+                data = res.json()
+                text_content = data["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(text_content)
+            else:
+                print(f"Errore Gemini HTTP {res.status_code}: {res.text}")
+    except Exception as e:
+        print(f"Eccezione chiamata Gemini: {e}")
+    return None
+
+# ==================== FALLBACK LOCALE ====================
+def fallback_synthesis(text: str):
+    text_lower = text.lower()
+    if any(w in text_lower for w in ["salta", "festa", "torno", "rientro"]):
         return {
-            "pitch_hz": pitch_hz,
-            "urgency": urgency,
-            "ear_mobility": mobility
+            "panksepp": "CARE", "arousal": 80, "valence": 35,
+            "thought": "Sei tornato! Il rientro della mia persona preferita mi fa esplodere il cuore di gioia. La mia eccitazione è altissima: salto per starti vicino!",
+            "explanation": "Il cane manifesta sollievo ed eccitazione affiliativa per la riunione sociale del branco.",
+            "steps": ["Ruota il corpo a 45 gradi con le braccia conserte.", "Attendi in silenzio quattro zampe a terra.", "Accarezzalo sul petto quando calmo."],
+            "forbidden": ["Non spingerlo con le mani (invita al gioco).", "Non urlare 'NO!' o 'GIÙ!'."]
         }
+    elif any(w in text_lower for w in ["ringhia", "litiga", "aggressivo", "cane"]):
+        return {
+            "panksepp": "RAGE", "arousal": 88, "valence": -35,
+            "thought": "Sagoma estranea frontale troppo vicina. Ringhio per fermare l'avanzata e difendere il mio spazio vitale!",
+            "explanation": "L'avvicinamento frontale inibisce le traiettorie ad arco e innesca la difesa ritualizzata dello spazio.",
+            "steps": ["Allarga la traiettoria compiendo un arco ampio.", "Fai da scudo visivo con il tuo corpo.", "Mantieni il guinzaglio morbido a 'U'."],
+            "forbidden": ["Non punire il ringhio: togliere il segnale porta al morso improvviso.", "Non strattonare il guinzaglio."]
+        }
+    return {
+        "panksepp": "SEEKING", "arousal": 45, "valence": 15,
+        "thought": "Scansione dell'ambiente attiva. Analizzo gradienti olfattivi a terra e mantengo l'equilibrio.",
+        "explanation": "Il cane si trova in uno stato di perlustrazione serena e monitoraggio degli stimoli.",
+        "steps": ["Concedigli il tempo di analizzare gli odori a terra.", "Mantieni un passo calmo e fluido."],
+        "forbidden": ["Non strapparlo via bruscamente mentre annusa."]
+    }
 
-class SynthesisAgent:
-    @staticmethod
-    def synthesize(text: str, snout: str, tail: str):
-        text_lower = text.lower()
-
-        if any(w in text_lower for w in ["salta", "festa", "torno", "rientro"]):
-            return {
-                "panksepp": "CARE",
-                "arousal": 80,
-                "valence": 35,
-                "thought": "Porta si apre. Profilo chimico tuo al massimo. Voce acuta e familiare. Non riesco a contenere il corpo: salto in alto per intercettare il tuo viso e salutarti!",
-                "buttons": ["PORTA APRE", "ODORE TUO", "SALTO SU", "CUORE VELOCE"],
-                "explanation": "Il cane prova un sollievo travolgente e una forte eccitazione affettiva per il rientro della figura di riferimento.",
-                "steps": [
-                  "Ruota il corpo di lato a 45 gradi e incrocia le braccia. Ignora i salti con calma e senza parlare.",
-                  "Attendi in silenzio finché non poggia tutte e quattro le zampe sul pavimento.",
-                  "Appena si è calmato, abbassati tu al suo livello e accarezzagli delicatamente il petto."
-                ],
-                "forbidden": [
-                  "Non spingerlo con le mani: per lui toccarlo è un invito a giocare alla lotta e salterà ancora di più.",
-                  "Non urlare 'NO!' o 'GIÙ!': la voce concitata alza ancora di più la sua agitazione."
-                ]
-            }
-        elif any(w in text_lower for w in ["ringhia", "litiga", "aggressivo", "attacca", "altro cane"]):
-            return {
-                "panksepp": "RAGE",
-                "arousal": 88,
-                "valence": -35,
-                "thought": "Sagoma estranea frontale troppo vicina. Il guinzaglio mi blocca la fuga. Mostro i denti anteriori e ringhio per fermare la sua avanzata prima che sia troppo tardi.",
-                "buttons": ["ALTRO CANE", "SPAZIO CHIUSO", "RINGHIO STOP", "CREA DISTANZA"],
-                "explanation": "L'avvicinamento frontale diretto inibisce le traiettorie naturali ad arco, attivando una risposta difensiva ritualizzata per proteggere lo spazio vitale.",
-                "steps": [
-                  "Allarga subito la traiettoria compiendo un arco ampio di almeno 5-6 metri.",
-                  "Mettiti fisicamente tra il tuo cane e l'estraneo facendo da scudo visivo.",
-                  "Mantieni il guinzaglio morbido a 'U' per non attivare il riflesso di opposizione."
-                ],
-                "forbidden": [
-                  "Non punire il ringhio: se gli togli l'avvertimento, in futuro morderà direttamente!",
-                  "Non strattonare il guinzaglio con violenza stringendogli la gola."
-                ]
-            }
-        elif any(w in text_lower for w in ["lecca", "zampe", "sangue"]):
-            return {
-                "panksepp": "PANIC/GRIEF",
-                "arousal": 75,
-                "valence": -30,
-                "thought": "Ansia interna costante. Leccarmi le zampe rilascia piccole dosi di endorfine che mi calmano. Continuo a farlo per sopportare il disagio.",
-                "buttons": ["ANSIA INTERNA", "LECCA ZAMPA", "CERCO CALMA", "STRESS"],
-                "explanation": "Il leccamento compulsivo focale funge da autolenimento (displacement) per contrastare stati di stress cronico o noia prolungata.",
-                "steps": [
-                  "Fai visitare le zampe dal veterinario per escludere dermatiti, corpi estranei o allergie.",
-                  "Offrigli masticativi naturali duraturi (es. corno di cervo o legno d'ulivo) per scaricare lo stress.",
-                  "Aumenta le uscite dedicate al fiuto libero nella natura per liberare la mente."
-                ],
-                "forbidden": [
-                  "Non sgridarlo mentre si lecca: la punizione alimenta l'ansia e lo farà di nascosto.",
-                  "Non limitarti a fasciargli la zampa senza curare la causa psicologica."
-                ]
-            }
-        else:
-            return {
-                "panksepp": "SEEKING",
-                "arousal": 45,
-                "valence": 15,
-                "thought": "Scansione dell'ambiente attiva. Analizzo tracce olfattive a terra e monitoro i suoni intorno. Mi sento curioso e vigile.",
-                "buttons": ["AMBIENTE", "ODORI NUOVI", "ESPLORO", "CALMO"],
-                "explanation": "Il cane si trova in uno stato di perlustrazione serena, guidato dalla naturale curiosità e dal fiuto.",
-                "steps": [
-                  "Lascialo annusare i punti che attirano la sua attenzione durante la passeggiata.",
-                  "Cammina a passo calmo e asseconda le sue esplorazioni."
-                ],
-                "forbidden": [
-                  "Non strattonarlo via mentre è assorto nell'analisi di un marcatore olfattivo."
-                ]
-            }
-
-# ==================== ENDPOINT PRINCIPALE ====================
+# ==================== ENDPOINT API ====================
 @app.post("/api/v1/umwelt/transduce")
 async def transduce(req: TransductionRequest):
-    olf = OlfactoryAgent.process(req.user_text, req.snout, req.observed_time_hours)
-    vis = VisualAgent.process(req.user_text, req.snout, req.size)
-    acu = AcousticAgent.process(req.user_text, req.ears)
-    synth = SynthesisAgent.synthesize(req.user_text, req.snout, req.tail)
+    bio = SensoryEngine.compute(req)
+    
+    synth = await query_gemini(req, bio)
+    engine_used = "neural_gemini_flash"
+    
+    if not synth:
+        synth = fallback_synthesis(req.user_text)
+        engine_used = "rule_fallback"
 
     return {
         "status": "success",
+        "engine": engine_used,
         "morphology_profile": {
             "snout": req.snout,
             "ears": req.ears,
             "size": req.size,
             "tail": req.tail
         },
-        "sensory_telemetry": {
-            "olfactory": olf,
-            "visual": vis,
-            "acoustic": acu
-        },
+        "sensory_telemetry": bio,
         "neural_synthesis": synth
     }
 
 @app.get("/")
 async def root():
-    return {"status": "BioDog Neural Engine Online"}
+    return {
+        "status": "BioDog Neural Engine Online",
+        "gemini_active": bool(GEMINI_API_KEY)
+    }
