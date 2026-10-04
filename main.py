@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="BioDog.io Neural Engine", version="2.8.0")
+app = FastAPI(title="BioDog.io Neural Engine", version="2.8.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,6 +21,7 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'").replace("[", "").replace("]", "")
+CACHED_MODEL_NAME = None
 
 # ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
@@ -89,10 +90,10 @@ def _extract_clean_json(raw_text: str) -> dict:
     return json.loads(cleaned)
 
 def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str], str]:
+    global CACHED_MODEL_NAME
     if not api_key:
         return None, "Chiave API mancante", "none"
 
-    # Nuova lista modelli aggiornata con Gemini 2.5 e 2.0
     models = [
         "gemini-2.5-flash",
         "gemini-2.0-flash",
@@ -124,10 +125,10 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
                 if response.status == 200:
                     body = json.loads(response.read().decode("utf-8"))
                     text = body["candidates"][0]["content"]["parts"][0]["text"]
+                    CACHED_MODEL_NAME = m
                     return _extract_clean_json(text), None, m
         except urllib.error.HTTPError as he:
             last_err = f"{m} HTTP {he.code}"
-            # Se la chiave è invalida (400 o 403), fermiamo il ciclo per evitare timeout lunghi
             if he.code in [400, 403]:
                 return None, f"Chiave API non valida (HTTP {he.code})", m
             continue
@@ -161,9 +162,9 @@ Profilo biologico:
         synth = {
             "situation_title": "Valutazione Etologica",
             "panksepp": "SEEKING", "arousal": 50, "valence": 10,
-            "thought": f"Scansione in corso per '{req.user_text}'.",
-            "explanation": f"Fallback attivo (Dettaglio: {api_err}).",
-            "steps": ["Osserva la postura generale."],
+            "thought": f"Analizzo la situazione '{req.user_text}' con i miei sensi.",
+            "explanation": f"Elaborazione locale di sicurezza (Dettaglio API: {api_err}).",
+            "steps": ["Osserva la postura generale.", "Mantieni calma e spazio vitale."],
             "forbidden": ["Evita reazioni improvvise."]
         }
 
@@ -185,5 +186,6 @@ Profilo biologico:
 async def root():
     return {
         "status": "BioDog Neural Engine Online",
+        "active_model": CACHED_MODEL_NAME or "Nessuno",
         "key_ready": bool(GEMINI_API_KEY)
     }
