@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 app = FastAPI(
     title="BioDog.io Neural Sensory Engine",
-    version="2.3.0"
+    version="2.3.1"
 )
 
 app.add_middleware(
@@ -23,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
 
 # ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
@@ -100,14 +100,16 @@ def _extract_clean_json(raw_text: str) -> dict:
 
 def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str]]:
     if not api_key:
-        return None, "Chiave GEMINI_API_KEY non configurata nelle variabili d'ambiente"
+        return None, "Chiave GEMINI_API_KEY mancante nelle Environment Variables di Render"
 
-    # Modelli supportati in ordine di preferenza
-    models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"]
+    models = ["gemini-1.5-flash", "gemini-1.5-pro"]
     last_error = None
 
     for model_name in models:
-        url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={api_key}"
+        # Costruzione URL con pulizia automatica di eventuali parentesi quadre
+        raw_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={api_key}"
+        url = raw_url.replace("[", "").replace("]", "").strip()
+
         payload = {
             "contents": [
                 {
@@ -125,13 +127,13 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
             data=json.dumps(payload).encode("utf-8"),
             headers={
                 "Content-Type": "application/json",
-                "User-Agent": "BioDog/2.3 (Compatible Client)"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
             },
             method="POST"
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=12) as response:
+            with urllib.request.urlopen(req, timeout=14) as response:
                 if response.status == 200:
                     body = json.loads(response.read().decode("utf-8"))
                     text = body["candidates"][0]["content"]["parts"][0]["text"]
@@ -139,9 +141,9 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
                     return parsed, None
         except urllib.error.HTTPError as he:
             err_msg = he.read().decode("utf-8")
-            last_error = f"{model_name} -> HTTP {he.code}: {err_msg}"
+            last_error = f"{model_name} HTTP {he.code}: {err_msg}"
         except Exception as e:
-            last_error = f"{model_name} -> Eccezione: {str(e)}"
+            last_error = f"{model_name} Errore: {str(e)}"
 
     return None, last_error
 
@@ -166,15 +168,34 @@ Profilo biologico del soggetto:
         engine_used = "neural_gemini_flash"
     else:
         engine_used = "fallback_local"
-        synth = {
-            "panksepp": "FEAR" if any(w in req.user_text.lower() for w in ["pancia", "zampa", "robot", "aspirapolvere", "trema", "paura"]) else "SEEKING",
-            "arousal": 70,
-            "valence": -25,
-            "thought": f"Valutazione sensoriale diretta per: '{req.user_text}'. Postura e prossemica in elaborazione.",
-            "explanation": f"Elaborazione di sicurezza (Dettaglio API: {api_err or 'Fallback predefinito'}).",
-            "steps": ["Rallenta i movimenti e mantieni una traiettoria ad arco.", "Concedi spazio al cane."],
-            "forbidden": ["Non forzare l'interazione frontale."]
-        }
+        lower = req.user_text.lower()
+        if any(w in lower for w in ["ulula", "solitudine", "solo"]):
+            synth = {
+                "panksepp": "PANIC/GRIEF",
+                "arousal": 85,
+                "valence": -35,
+                "thought": "Essere rimasto da solo mi disorienta. L'isolamento dal branco fa crollare la mia sicurezza: ululo per emettere un segnale acustico a lungo raggio e farmi ritrovare!",
+                "explanation": "L'ululato in solitudine è l'espressione classica del circuito PANIC/GRIEF: un richiamo di localizzazione per ricongiungersi con la figura di attaccamento.",
+                "steps": [
+                    "Abitua il cane a micropause di assenza graduali rientrando prima che parta l'ansia.",
+                    "Lasciagli un masticativo naturale appetibile prima di uscire per impegnare la bocca.",
+                    "Lascia a disposizione un tuo indumento indossato nella sua cuccia preferita."
+                ],
+                "forbidden": [
+                    "Non sgridarlo mai al rientro se ha ululato: assocerà il ritorno alla paura.",
+                    "Non fare saluti enfatici o prolungati prima di varcare la porta."
+                ]
+            }
+        else:
+            synth = {
+                "panksepp": "SEEKING",
+                "arousal": 50,
+                "valence": 10,
+                "thought": f"Analizzo la situazione '{req.user_text}'. Scansione sensoriale attiva.",
+                "explanation": f"Elaborazione locale temporanea. (Dettaglio: {api_err})",
+                "steps": ["Mantieni la calma e osserva la postura del cane."],
+                "forbidden": ["Evita movimenti bruschi."]
+            }
 
     return {
         "status": "success",
@@ -190,38 +211,11 @@ Profilo biologico del soggetto:
         "neural_synthesis": synth
     }
 
-# ==================== ENDPOINT DIAGNOSTICO ====================
-@app.get("/test-gemini")
-async def test_gemini():
-    """Endpoint diagnostico rapido richiamabile direttamente dal browser."""
-    if not GEMINI_API_KEY:
-        return {
-            "ok": False,
-            "error": "La variabile GEMINI_API_KEY non è impostata nelle Environment Variables di Render."
-        }
-
-    test_prompt = 'Rispondi SOLO con questo JSON: {"test_status": "connesso", "messaggio": "Gemini risponde correttamente"}'
-    synth, err = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, test_prompt)
-
-    if synth:
-        return {
-            "ok": True,
-            "key_present": True,
-            "key_prefix": GEMINI_API_KEY[:6] + "...",
-            "gemini_output": synth
-        }
-    else:
-        return {
-            "ok": False,
-            "key_present": True,
-            "key_prefix": GEMINI_API_KEY[:6] + "...",
-            "google_error": err
-        }
-
 @app.get("/")
 async def root():
+    clean_key = GEMINI_API_KEY.replace("[", "").replace("]", "").strip()
     return {
         "status": "BioDog Neural Engine Online",
-        "has_key": bool(GEMINI_API_KEY),
-        "diagnostics": "/test-gemini"
+        "has_key": bool(clean_key),
+        "key_prefix": clean_key[:6] + "..." if clean_key else "MANCANTE"
     }
