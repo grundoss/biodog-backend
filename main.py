@@ -1,11 +1,13 @@
+import asyncio
 import json
 import math
 import os
 import re
 from typing import List, Optional
+import urllib.error
+import urllib.request
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
 from pydantic import BaseModel, Field
 
 app = FastAPI(
@@ -83,7 +85,22 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO DPO):
   "forbidden": ["errore 1 da non commettere", "errore 2"]
 }"""
 
-async def query_gemini(req: TransductionRequest, bio: dict) -> dict:
+def _call_gemini_native(url: str, payload_bytes: bytes) -> Optional[dict]:
+    req = urllib.request.Request(
+        url,
+        data=payload_bytes,
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=12) as res:
+        if res.status == 200:
+            raw_body = res.read().decode("utf-8")
+            data = json.loads(raw_body)
+            text_content = data["candidates"][0]["content"]["parts"][0]["text"]
+            return json.loads(text_content)
+    return None
+
+async def query_gemini(req: TransductionRequest, bio: dict) -> Optional[dict]:
     if not GEMINI_API_KEY:
         return None
 
@@ -109,19 +126,13 @@ Profilo biologico:
             "responseMimeType": "application/json"
         }
     }
+    payload_bytes = json.dumps(payload).encode("utf-8")
 
     try:
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            res = await client.post(url, json=payload)
-            if res.status_code == 200:
-                data = res.json()
-                text_content = data["candidates"][0]["content"]["parts"][0]["text"]
-                return json.loads(text_content)
-            else:
-                print(f"Errore Gemini HTTP {res.status_code}: {res.text}")
+        return await asyncio.to_thread(_call_gemini_native, url, payload_bytes)
     except Exception as e:
-        print(f"Eccezione chiamata Gemini: {e}")
-    return None
+        print(f"Errore chiamata Gemini: {e}")
+        return None
 
 # ==================== FALLBACK LOCALE ====================
 def fallback_synthesis(text: str):
@@ -154,7 +165,6 @@ def fallback_synthesis(text: str):
 @app.post("/api/v1/umwelt/transduce")
 async def transduce(req: TransductionRequest):
     bio = SensoryEngine.compute(req)
-    
     synth = await query_gemini(req, bio)
     engine_used = "neural_gemini_flash"
     
