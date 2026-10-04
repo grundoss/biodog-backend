@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="BioDog.io Neural Engine", version="2.9.0")
+app = FastAPI(title="BioDog.io Neural Engine", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,6 +21,7 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'").replace("[", "").replace("]", "")
+ACTIVE_MODEL = None
 
 # ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
@@ -80,33 +81,66 @@ def _extract_clean_json(raw_text: str) -> dict:
         cleaned = cleaned[start:end+1]
     return json.loads(cleaned)
 
+def _find_live_model(api_key: str) -> str:
+    """Interroga Google per sapere quali modelli sono realmente abilitati su questa API Key."""
+    global ACTIVE_MODEL
+    if ACTIVE_MODEL:
+        return ACTIVE_MODEL
+
+    pt = "https"
+    dm = "generativelanguage.googleapis.com"
+    list_url = f"{pt}://{dm}/v1beta/models?key={api_key}"
+
+    try:
+        req = urllib.request.Request(list_url, headers={"User-Agent": "BioDog/3.0"})
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            available = [
+                m["name"].replace("models/", "")
+                for m in data.get("models", [])
+                if "generateContent" in m.get("supportedGenerationMethods", [])
+            ]
+            # Priorità ai modelli Flash più recenti (3.8, 3.6, flash-latest)
+            for priority in ["3.8-flash", "3.6-flash", "flash-latest", "flash", "gemini"]:
+                for m in available:
+                    if priority in m.lower():
+                        ACTIVE_MODEL = m
+                        return ACTIVE_MODEL
+            if available:
+                ACTIVE_MODEL = available[0]
+                return ACTIVE_MODEL
+    except Exception as e:
+        print(f"ListModels lookup: {e}")
+
+    # Fallback predefinito per Google AI Studio 2026
+    ACTIVE_MODEL = "gemini-3.8-flash"
+    return ACTIVE_MODEL
+
 def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str], str]:
     if not api_key:
         return None, "Chiave API mancante", "none"
 
-    # I 3 modelli base ufficiali di Google, attivi su tutti gli account.
-    models = [
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-        "gemini-1.0-pro"
-    ]
+    discovered = _find_live_model(api_key)
+    candidate_models = [discovered, "gemini-3.8-flash", "gemini-flash-latest"]
     
     last_err = "Nessun modello ha risposto"
     pt = "https"
     dm = "generativelanguage.googleapis.com"
 
-    for m in models:
+    for m in candidate_models:
         url = f"{pt}://{dm}/v1beta/models/{m}:generateContent?key={api_key}"
         
         payload = {
             "contents": [{"parts": [{"text": full_prompt}]}],
-            "generationConfig": {"temperature": 0.2}
+            "generationConfig": {
+                "responseMimeType": "application/json"
+            }
         }
         
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.0"},
             method="POST"
         )
         
@@ -114,21 +148,24 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
             with urllib.request.urlopen(req, timeout=12) as response:
                 if response.status == 200:
                     body = json.loads(response.read().decode("utf-8"))
-                    text = body["candidates"][0]["content"]["parts"][0]["text"]
+                    parts = body["candidates"][0]["content"]["parts"]
+                    # Estrae la parte contenente il JSON
+                    text = ""
+                    for p in reversed(parts):
+                        if "text" in p and "{" in p["text"]:
+                            text = p["text"]
+                            break
+                    if not text and parts:
+                        text = parts[-1].get("text", "")
+                    
+                    global ACTIVE_MODEL
+                    ACTIVE_MODEL = m
                     return _extract_clean_json(text), None, m
         except urllib.error.HTTPError as he:
-            # Estraiamo il VERO motivo dell'errore restituito da Google
             err_body = he.read().decode("utf-8")
-            try:
-                err_msg = json.loads(err_body).get("error", {}).get("message", err_body)
-            except:
-                err_msg = err_body
-                
-            last_err = f"{m} HTTP {he.code}: {err_msg}"
-            
-            # Se la chiave è errata o bloccata (400, 403) fermati subito.
+            last_err = f"{m} HTTP {he.code}: {err_body}"
             if he.code in [400, 403]:
-                return None, f"Chiave API bloccata o errata (HTTP {he.code}): {err_msg}", m
+                return None, f"Chiave non autorizzata (HTTP {he.code})", m
             continue
         except Exception as e:
             last_err = f"{m} err: {str(e)}"
@@ -153,9 +190,9 @@ async def transduce(req: TransductionRequest):
             "situation_title": "Valutazione Etologica",
             "panksepp": "SEEKING", "arousal": 50, "valence": 10,
             "thought": f"Analizzo la situazione '{req.user_text}' con i miei sensi.",
-            "explanation": f"Elaborazione locale di sicurezza (Dettaglio API: {api_err}).",
+            "explanation": f"Elaborazione di sicurezza (Dettaglio: {api_err}).",
             "steps": ["Osserva la postura generale.", "Mantieni calma e spazio vitale."],
-            "forbidden": ["Evita reazioni improvvise."]
+            "forbidden": ["Evita rimproveri immotivati."]
         }
 
     return {
@@ -172,9 +209,20 @@ async def transduce(req: TransductionRequest):
         "neural_synthesis": synth
     }
 
+# ==================== ENDPOINT DIAGNOSTICO ====================
+@app.get("/test-gemini")
+async def test_gemini():
+    synth, err, model = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, 'Rispondi SOLO con questo JSON: {"status": "ok", "test": "success"}')
+    return {
+        "ok": bool(synth),
+        "modello_agganciato": model,
+        "risposta_gemini": synth,
+        "eventuale_errore": err
+    }
+
 @app.get("/")
 async def root():
     return {
         "status": "BioDog Neural Engine Online",
-        "key_ready": bool(GEMINI_API_KEY)
+        "modello_rilevato": ACTIVE_MODEL or _find_live_model(GEMINI_API_KEY) if GEMINI_API_KEY else "Nessuna chiave"
     }
