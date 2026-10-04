@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="BioDog.io Neural Engine", version="2.8.2")
+app = FastAPI(title="BioDog.io Neural Engine", version="2.9.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,7 +21,6 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'").replace("[", "").replace("]", "")
-CACHED_MODEL_NAME = None
 
 # ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
@@ -72,32 +71,24 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO):
 
 def _extract_clean_json(raw_text: str) -> dict:
     cleaned = raw_text.strip()
-    
-    # Trucco per evitare di scrivere i backtick espliciti nel codice e rompere il tablet
     marker = chr(96) * 3
-    
     if marker in cleaned:
-        cleaned = cleaned.replace(marker + "json", "")
-        cleaned = cleaned.replace(marker, "")
-        cleaned = cleaned.strip()
-
+        cleaned = cleaned.replace(marker + "json", "").replace(marker, "").strip()
     start = cleaned.find("{")
     end = cleaned.rfind("}")
     if start != -1 and end != -1:
         cleaned = cleaned[start:end+1]
-
     return json.loads(cleaned)
 
 def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str], str]:
-    global CACHED_MODEL_NAME
     if not api_key:
         return None, "Chiave API mancante", "none"
 
+    # I 3 modelli base ufficiali di Google, attivi su tutti gli account.
     models = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-pro"
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-1.0-pro"
     ]
     
     last_err = "Nessun modello ha risposto"
@@ -120,16 +111,24 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
         )
         
         try:
-            with urllib.request.urlopen(req, timeout=10) as response:
+            with urllib.request.urlopen(req, timeout=12) as response:
                 if response.status == 200:
                     body = json.loads(response.read().decode("utf-8"))
                     text = body["candidates"][0]["content"]["parts"][0]["text"]
-                    CACHED_MODEL_NAME = m
                     return _extract_clean_json(text), None, m
         except urllib.error.HTTPError as he:
-            last_err = f"{m} HTTP {he.code}"
+            # Estraiamo il VERO motivo dell'errore restituito da Google
+            err_body = he.read().decode("utf-8")
+            try:
+                err_msg = json.loads(err_body).get("error", {}).get("message", err_body)
+            except:
+                err_msg = err_body
+                
+            last_err = f"{m} HTTP {he.code}: {err_msg}"
+            
+            # Se la chiave è errata o bloccata (400, 403) fermati subito.
             if he.code in [400, 403]:
-                return None, f"Chiave API non valida (HTTP {he.code})", m
+                return None, f"Chiave API bloccata o errata (HTTP {he.code}): {err_msg}", m
             continue
         except Exception as e:
             last_err = f"{m} err: {str(e)}"
@@ -177,6 +176,5 @@ async def transduce(req: TransductionRequest):
 async def root():
     return {
         "status": "BioDog Neural Engine Online",
-        "active_model": CACHED_MODEL_NAME or "Nessuno",
         "key_ready": bool(GEMINI_API_KEY)
     }
