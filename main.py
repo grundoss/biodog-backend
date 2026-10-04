@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="BioDog.io Neural Engine", version="2.7.0")
+app = FastAPI(title="BioDog.io Neural Engine", version="2.8.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -71,12 +71,15 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO):
 
 def _extract_clean_json(raw_text: str) -> dict:
     cleaned = raw_text.strip()
-    if "```" in cleaned:
-        match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, re.DOTALL)
+    if "
+```" in cleaned:
+        match = re.search(r"
+```(?:json)?\s*(\{.*?\})\s*```", cleaned, re.DOTALL)
         if match:
             cleaned = match.group(1)
         else:
-            cleaned = cleaned.replace("```json", "").replace("```", "").strip()
+            cleaned = cleaned.replace("
+```json", "").replace("```", "").strip()
 
     start = cleaned.find("{")
     end = cleaned.rfind("}")
@@ -89,21 +92,19 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
     if not api_key:
         return None, "Chiave API mancante", "none"
 
+    # Nuova lista modelli aggiornata con Gemini 2.5 e 2.0
     models = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
         "gemini-1.5-flash-latest",
-        "gemini-1.5-flash-8b",
-        "gemini-1.5-flash",
-        "gemini-pro"
+        "gemini-1.5-pro"
     ]
     
-    last_err = "Errore sconosciuto"
-    
-    # TRUCCO ANTI-TABLET: Spezziamo l'URL in blocchi di testo separati.
+    last_err = "Nessun modello ha risposto"
     pt = "https"
     dm = "generativelanguage.googleapis.com"
 
     for m in models:
-        # Costruiamo l'indirizzo al volo, così il tablet non lo riconosce durante il copia-incolla
         url = f"{pt}://{dm}/v1beta/models/{m}:generateContent?key={api_key}"
         
         payload = {
@@ -126,9 +127,12 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
                     return _extract_clean_json(text), None, m
         except urllib.error.HTTPError as he:
             last_err = f"{m} HTTP {he.code}"
+            # Se la chiave è invalida (400 o 403), fermiamo il ciclo per evitare timeout lunghi
+            if he.code in [400, 403]:
+                return None, f"Chiave API non valida (HTTP {he.code})", m
             continue
         except Exception as e:
-            last_err = f"{m} Eccezione: {str(e)}"
+            last_err = f"{m} err: {str(e)}"
             continue
 
     return None, last_err, "failed"
