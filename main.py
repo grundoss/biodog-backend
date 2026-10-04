@@ -10,10 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(
-    title="BioDog.io Neural Sensory Engine",
-    version="2.3.1"
-)
+app = FastAPI(title="BioDog.io Neural Engine", version="2.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +21,7 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
+CACHED_MODEL_NAME = None
 
 # ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
@@ -39,31 +37,20 @@ class SensoryEngine:
     @staticmethod
     def compute(req: TransductionRequest):
         turbinates = 170.0 if req.snout == "long" else (45.0 if req.snout == "flat" else 100.0)
-        decay = 0.35
-        detected_hours = req.observed_time_hours or 0.0
-        match = re.search(r"(\d+)\s*(?:ore|ora|h)", req.user_text, re.IGNORECASE)
-        if match:
-            detected_hours = float(match.group(1))
-        elif re.search(r"tutto il giorno|sempre", req.user_text, re.IGNORECASE):
-            detected_hours = 8.0
-
-        residual = max(5.0, 100.0 * math.exp(-decay * detected_hours)) if detected_hours > 0 else 95.0
         fov = 270 if req.snout == "long" else (220 if req.snout == "flat" else 250)
         cpd = 12.5 if req.snout == "long" else (9.5 if req.snout == "flat" else 11.5)
         eye_height = 25 if req.size == "small" else (75 if req.size == "large" else 45)
-        mobility = "Flessibilità 180° e orientamento indipendente" if req.ears == "prick" else "Assorbimento passivo frontale"
+        mobility = "Flessibilità 180° indipendente" if req.ears == "prick" else "Assorbimento passivo frontale"
 
         return {
             "turbinates_cm2": turbinates,
-            "voc_residual_percent": round(residual, 1),
             "fov_degrees": fov,
             "acuity_cpd": cpd,
             "eye_height_cm": eye_height,
             "ear_mobility": mobility,
-            "tail_bias": "Coda arricciata" if req.tail == "curly" else ("Coda corta" if req.tail == "short" else "Standard")
+            "tail_bias": req.tail
         }
 
-# ==================== SYSTEM PROMPT ANTI-ANTROPOMORFISMO ====================
 SYSTEM_PROMPT = """Sei il motore di intelligenza artificiale biologica BioDog.io.
 Trasduci il comportamento del cane descritto dall'umano nella prospettiva etologica e percettiva del cane (Umwelt di Jakob von Uexküll).
 
@@ -73,10 +60,11 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO DPO):
 3. Considera le costanti morfologiche (olfatto, campo visivo, altezza occhi) per determinare la reattività.
 4. Genera ESCLUSIVAMENTE un JSON valido (senza testo introduttivo o markdown) con questa struttura esatta:
 {
+  "situation_title": "Breve titolo etologico della situazione",
   "panksepp": "CARE | RAGE | FEAR | PANIC/GRIEF | PLAY | SEEKING | LUST",
   "arousal": numero intero da 0 a 100,
   "valence": numero intero da -50 a +50,
-  "thought": "pensiero del cane in prima persona: rapido, sensoriale (odori, suoni, distanze, postura), privo di morale umana",
+  "thought": "pensiero del cane in prima persona: rapido, sensoriale (odori, suoni, distanze, posture), privo di morale umana",
   "explanation": "spiegazione etologica chiara per il proprietario",
   "steps": ["passo 1 concreto da fare subito", "passo 2", "passo 3"],
   "forbidden": ["errore 1 da non commettere", "errore 2"]
@@ -98,54 +86,71 @@ def _extract_clean_json(raw_text: str) -> dict:
 
     return json.loads(cleaned)
 
-def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str]]:
+def _discover_active_model(api_key: str) -> str:
+    global CACHED_MODEL_NAME
+    if CACHED_MODEL_NAME:
+        return CACHED_MODEL_NAME
+
+    list_url = f"[https://generativelanguage.googleapis.com/v1beta/models?key=](https://generativelanguage.googleapis.com/v1beta/models?key=){api_key}"
+    try:
+        req = urllib.request.Request(list_url, headers={"User-Agent": "BioDog/2.4"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            available = [
+                m["name"].replace("models/", "")
+                for m in data.get("models", [])
+                if "generateContent" in m.get("supportedGenerationMethods", [])
+            ]
+            for target in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash"]:
+                for m in available:
+                    if target in m:
+                        CACHED_MODEL_NAME = m
+                        return CACHED_MODEL_NAME
+            if available:
+                CACHED_MODEL_NAME = available[0]
+                return CACHED_MODEL_NAME
+    except Exception as e:
+        print(f"Errore autodiscovery modelli: {e}")
+
+    # Fallback predefinito se la lista non risponde
+    CACHED_MODEL_NAME = "gemini-2.0-flash"
+    return CACHED_MODEL_NAME
+
+def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str], str]:
+    global CACHED_MODEL_NAME
     if not api_key:
-        return None, "Chiave GEMINI_API_KEY mancante nelle Environment Variables di Render"
+        return None, "Chiave GEMINI_API_KEY non presente", "none"
 
-    models = ["gemini-1.5-flash", "gemini-1.5-pro"]
-    last_error = None
+    model_name = _discover_active_model(api_key)
+    candidate_models = [model_name, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
+    last_err = None
 
-    for model_name in models:
-        # Costruzione URL con pulizia automatica di eventuali parentesi quadre
-        raw_url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){model_name}:generateContent?key={api_key}"
-        url = raw_url.replace("[", "").replace("]", "").strip()
-
+    for m in candidate_models:
+        url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){m}:generateContent?key={api_key}"
         payload = {
-            "contents": [
-                {
-                    "parts": [{"text": full_prompt}]
-                }
-            ],
-            "generationConfig": {
-                "temperature": 0.2,
-                "responseMimeType": "application/json"
-            }
+            "contents": [{"parts": [{"text": full_prompt}]}],
+            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
         }
-        
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-            },
+            headers={"Content-Type": "application/json", "User-Agent": "BioDog/2.4"},
             method="POST"
         )
-
         try:
-            with urllib.request.urlopen(req, timeout=14) as response:
+            with urllib.request.urlopen(req, timeout=12) as response:
                 if response.status == 200:
                     body = json.loads(response.read().decode("utf-8"))
                     text = body["candidates"][0]["content"]["parts"][0]["text"]
-                    parsed = _extract_clean_json(text)
-                    return parsed, None
+                    CACHED_MODEL_NAME = m
+                    return _extract_clean_json(text), None, m
         except urllib.error.HTTPError as he:
-            err_msg = he.read().decode("utf-8")
-            last_error = f"{model_name} HTTP {he.code}: {err_msg}"
+            last_err = f"{m} HTTP {he.code}"
+            CACHED_MODEL_NAME = None
         except Exception as e:
-            last_error = f"{model_name} Errore: {str(e)}"
+            last_err = f"{m} err: {str(e)}"
 
-    return None, last_error
+    return None, last_err, "failed"
 
 # ==================== ENDPOINT PRINCIPALE ====================
 @app.post("/api/v1/umwelt/transduce")
@@ -154,47 +159,45 @@ async def transduce(req: TransductionRequest):
 
     user_prompt = f"""{SYSTEM_PROMPT}
 
-Descrizione della situazione osservata: "{req.user_text}"
-Profilo biologico del soggetto:
-- Cranio: {req.snout} (Superficie turbinati olfattivi: {bio['turbinates_cm2']} cm²)
+Comportamento osservato: "{req.user_text}"
+Profilo biologico:
+- Cranio: {req.snout} (Turbinati olfattivi: {bio['turbinates_cm2']} cm²)
 - Campo Visivo: {bio['fov_degrees']}° (Acuità: {bio['acuity_cpd']} cpd)
-- Altezza occhi da terra: {bio['eye_height_cm']} cm
-- Morfologia Coda: {bio['tail_bias']}
-- Orientamento Padiglioni Auricolari: {bio['ear_mobility']}"""
+- Occhi da terra: {bio['eye_height_cm']} cm
+- Coda: {bio['tail_bias']}
+- Orecchie: {bio['ear_mobility']}"""
 
-    synth, api_err = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, user_prompt)
+    synth, api_err, used_model = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, user_prompt)
 
     if synth:
-        engine_used = "neural_gemini_flash"
+        engine_used = f"neural_{used_model}"
     else:
         engine_used = "fallback_local"
         lower = req.user_text.lower()
-        if any(w in lower for w in ["ulula", "solitudine", "solo"]):
+        if "recinzione" in lower or "avanti e indietro" in lower or "rete" in lower:
             synth = {
-                "panksepp": "PANIC/GRIEF",
-                "arousal": 85,
-                "valence": -35,
-                "thought": "Essere rimasto da solo mi disorienta. L'isolamento dal branco fa crollare la mia sicurezza: ululo per emettere un segnale acustico a lungo raggio e farmi ritrovare!",
-                "explanation": "L'ululato in solitudine è l'espressione classica del circuito PANIC/GRIEF: un richiamo di localizzazione per ricongiungersi con la figura di attaccamento.",
+                "situation_title": "Pacing da Barriera / Frustrazione",
+                "panksepp": "RAGE", "arousal": 85, "valence": -35,
+                "thought": "Vedo e sento stimoli al di là della rete ma non posso raggiungerli. La barriera mi blocca: cammino avanti e indietro senza sosta per sfogare la tensione muscolare!",
+                "explanation": "La recinzione crea una barriera visivo-motoria. Il movimento continuo (pacing) è un comportamento compulsivo stereotipato causato dall'impossibilità di esplorare o controllare l'ambiente.",
                 "steps": [
-                    "Abitua il cane a micropause di assenza graduali rientrando prima che parta l'ansia.",
-                    "Lasciagli un masticativo naturale appetibile prima di uscire per impegnare la bocca.",
-                    "Lascia a disposizione un tuo indumento indossato nella sua cuccia preferita."
+                    "Scherma la rete con teli oscuranti per interrompere la stimolazione visiva continua.",
+                    "Porta il cane fuori dal giardino in passeggiata per soddisfare il suo bisogno di esplorare.",
+                    "Interrompi il loop spargendo cibo nell'erba per stimolare il fiuto e abbassare l'agitazione."
                 ],
                 "forbidden": [
-                    "Non sgridarlo mai al rientro se ha ululato: assocerà il ritorno alla paura.",
-                    "Non fare saluti enfatici o prolungati prima di varcare la porta."
+                    "Non sgridarlo mentre fa avanti e indietro: lo stress aumenterà.",
+                    "Non lasciarlo ore da solo in giardino credendo che 'faccia esercizio'."
                 ]
             }
         else:
             synth = {
-                "panksepp": "SEEKING",
-                "arousal": 50,
-                "valence": 10,
-                "thought": f"Analizzo la situazione '{req.user_text}'. Scansione sensoriale attiva.",
-                "explanation": f"Elaborazione locale temporanea. (Dettaglio: {api_err})",
-                "steps": ["Mantieni la calma e osserva la postura del cane."],
-                "forbidden": ["Evita movimenti bruschi."]
+                "situation_title": "Valutazione Etologica",
+                "panksepp": "SEEKING", "arousal": 50, "valence": 10,
+                "thought": f"Analizzo la situazione '{req.user_text}' attraverso i miei sensi.",
+                "explanation": f"Elaborazione di sicurezza (Dettaglio API: {api_err}).",
+                "steps": ["Osserva la postura complessiva del cane.", "Mantieni calma e spazio vitale."],
+                "forbidden": ["Evita movimenti improvvisi o punizioni verbali."]
             }
 
     return {
@@ -213,9 +216,8 @@ Profilo biologico del soggetto:
 
 @app.get("/")
 async def root():
-    clean_key = GEMINI_API_KEY.replace("[", "").replace("]", "").strip()
     return {
         "status": "BioDog Neural Engine Online",
-        "has_key": bool(clean_key),
-        "key_prefix": clean_key[:6] + "..." if clean_key else "MANCANTE"
+        "active_model": CACHED_MODEL_NAME or _discover_active_model(GEMINI_API_KEY) if GEMINI_API_KEY else "No key",
+        "key_ready": bool(GEMINI_API_KEY)
     }
