@@ -1,4 +1,3 @@
-```python
 import asyncio
 import json
 import math
@@ -269,4 +268,4 @@ async def root():
         "status": "BioDog Neural Engine Online",
         "modello_rilevato": ACTIVE_MODEL or _find_live_model(GEMINI_API_KEY) if GEMINI_API_KEY else "Nessuna chiave"
     }
-```
+
