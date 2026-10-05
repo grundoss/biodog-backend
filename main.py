@@ -18,7 +18,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.4.2")
+app = FastAPI(title="BioDog.io Neural Engine", version="3.4.3")
 
 app.add_middleware(
     CORSMiddleware,
@@ -238,7 +238,7 @@ def _update_supabase_subscription(user_id: str, email: str, customer_id: str, su
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            print(f"[Supabase] Abbonamento aggiornato con successo per {email}: active={is_active}")
+            print(f"[Supabase] Abbonamento aggiornato con successo per {email} (user: {user_id}): active={is_active}")
             return resp.status in [200, 201]
     except urllib.error.HTTPError as he:
         err_msg = he.read().decode("utf-8")
@@ -307,7 +307,7 @@ async def create_checkout_session(req: CreateCheckoutRequest):
 
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Header(None)):
-    """Riceve e gestisce in sicurezza gli eventi di Stripe con logging anti-crash."""
+    """Riceve e gestisce in sicurezza gli eventi di Stripe convertendoli sempre in dizionario."""
     try:
         payload = await request.body()
 
@@ -330,10 +330,26 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
             except Exception as e:
                 raise HTTPException(status_code=400, detail="Payload JSON non valido.")
 
-        # Estrazione sicura dei dati (compatibile sia con API v1 che v2 Workbench)
-        event_type = event.get("type") or event.get("event_type") or ""
-        event_data = event.get("data") or {}
-        data_obj = event_data.get("object") or event.get("object") or {}
+        # Conversione universale dell'oggetto Stripe in dict Python standard
+        if hasattr(event, "to_dict"):
+            event_dict = event.to_dict()
+        elif isinstance(event, dict):
+            event_dict = event
+        else:
+            try:
+                event_dict = json.loads(payload.decode("utf-8"))
+            except Exception:
+                event_dict = {}
+
+        # Estrazione sicura dei dati
+        event_type = event_dict.get("type") or event_dict.get("event_type") or ""
+        event_data = event_dict.get("data") or {}
+        data_obj = event_data.get("object") or event_dict.get("object") or {}
+
+        if hasattr(data_obj, "to_dict"):
+            data_obj = data_obj.to_dict()
+        elif not isinstance(data_obj, dict):
+            data_obj = {}
 
         print(f"[Stripe Webhook Ricevuto] Tipo evento: {event_type}")
 
@@ -341,30 +357,39 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
         if event_type == "checkout.session.completed":
             metadata = data_obj.get("metadata") or {}
             user_id = data_obj.get("client_reference_id") or metadata.get("user_id")
-            email = data_obj.get("customer_email") or metadata.get("user_email")
-            customer_id = data_obj.get("customer")
-            sub_id = data_obj.get("subscription") or data_obj.get("id")
+            
+            customer_details = data_obj.get("customer_details") or {}
+            email = (
+                data_obj.get("customer_email")
+                or customer_details.get("email")
+                or metadata.get("user_email")
+                or ""
+            )
+            customer_id = data_obj.get("customer") or ""
+            sub_id = data_obj.get("subscription") or data_obj.get("id") or ""
 
             print(f"[Stripe Webhook Details] user_id: {user_id}, email: {email}, sub_id: {sub_id}")
 
             if user_id:
-                success = _update_supabase_subscription(user_id, email or "", customer_id or "", sub_id or "", True)
+                success = _update_supabase_subscription(str(user_id), email, str(customer_id), str(sub_id), True)
                 if not success:
-                    print("[Stripe Webhook Warning] Scrittura su Supabase non riuscita (controlla SUPABASE_SERVICE_KEY).")
+                    print("[Stripe Webhook Warning] Scrittura su Supabase non riuscita (verifica SUPABASE_SERVICE_KEY).")
+            else:
+                print(f"[Stripe Webhook Info] Evento completato senza user_id associato (email: {email}).")
 
         # 2. Rinnovo mensile riuscito
         elif event_type == "invoice.payment_succeeded":
-            sub_id = data_obj.get("subscription")
-            customer_id = data_obj.get("customer")
-            email = data_obj.get("customer_email")
+            sub_id = data_obj.get("subscription") or ""
+            customer_id = data_obj.get("customer") or ""
+            email = data_obj.get("customer_email") or ""
             print(f"[Stripe Webhook] Rinnovo per {email}, sub: {sub_id}")
 
         # 3. Abbonamento cancellato o non rinnovato
         elif event_type in ["customer.subscription.deleted", "customer.subscription.paused"]:
-            sub_id = data_obj.get("id") or data_obj.get("subscription")
-            customer_id = data_obj.get("customer")
+            sub_id = data_obj.get("id") or data_obj.get("subscription") or ""
+            customer_id = data_obj.get("customer") or ""
             if sub_id:
-                _deactivate_subscription_by_stripe_id(sub_id, customer_id or "")
+                _deactivate_subscription_by_stripe_id(str(sub_id), str(customer_id))
 
         return {"status": "success", "processed_event": event_type}
 
@@ -373,7 +398,6 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
     except Exception as e:
         traceback.print_exc()
         print(f"[Stripe Webhook Fatal Error]: {e}")
-        # Ritorna errore 500 con dettaglio nel body visibile nella dashboard Stripe
         raise HTTPException(status_code=500, detail=f"Errore elaborazione webhook: {str(e)}")
 
 # ==================== ENDPOINT PRINCIPALE TRADUZIONE ====================
