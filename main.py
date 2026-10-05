@@ -1,3 +1,4 @@
+```python
 import asyncio
 import json
 import math
@@ -82,55 +83,15 @@ def _extract_clean_json(raw_text: str) -> dict:
         cleaned = cleaned[start:end+1]
     return json.loads(cleaned)
 
-def _find_live_model(api_key: str) -> str:
-    global ACTIVE_MODEL
-    if ACTIVE_MODEL:
-        return ACTIVE_MODEL
-
-    pt = "https"
-    dm = "generativelanguage.googleapis.com"
-    list_url = f"{pt}://{dm}/v1beta/models?key={api_key}"
-
-    try:
-        req = urllib.request.Request(list_url, headers={"User-Agent": "BioDog/3.2"})
-        with urllib.request.urlopen(req, timeout=6) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            available = [
-                m["name"].replace("models/", "")
-                for m in data.get("models", [])
-                if "generateContent" in m.get("supportedGenerationMethods", [])
-            ]
-            # Cerca SOLO i modelli moderni in ordine di preferenza
-            for priority in ["3.8-flash", "3.6-flash", "flash-latest", "2.5-flash", "2.0-flash"]:
-                for m in available:
-                    if priority in m.lower():
-                        ACTIVE_MODEL = m
-                        return ACTIVE_MODEL
-            if available:
-                ACTIVE_MODEL = available[0]
-                return ACTIVE_MODEL
-    except Exception as e:
-        print(f"ListModels error: {e}")
-
-    ACTIVE_MODEL = "gemini-flash-latest"
-    return ACTIVE_MODEL
-
 def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str], str]:
     if not api_key:
         return None, "Chiave API mancante", "none"
 
-    discovered = _find_live_model(api_key)
-    
-    # Pool di modelli RIGOROSAMENTE aggiornati, senza alcun 1.5 o 1.0
-    models_pool = [
-        discovered,
-        "gemini-flash-latest",
+    # LISTA BLINDATA RICHIESTA DA GOOGLE
+    candidate_models = [
         "gemini-3.8-flash",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash"
+        "gemini-flash-latest"
     ]
-    # Rimuove eventuali duplicati preservando l'ordine
-    candidate_models = list(dict.fromkeys([m for m in models_pool if m]))
 
     last_err = "Nessun modello ha risposto"
     pt = "https"
@@ -150,7 +111,6 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
             method="POST"
         )
         
-        # Fino a 2 tentativi per modello per bypassare i picchi 503 momentanei
         for attempt in range(2):
             try:
                 with urllib.request.urlopen(req, timeout=12) as response:
@@ -172,16 +132,12 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
                 err_body = he.read().decode("utf-8")
                 last_err = f"{m} HTTP {he.code}: {err_body}"
                 
-                # Chiave invalida: interrompiamo subito per tutti i modelli
                 if he.code in [400, 403]:
                     return None, f"Chiave non autorizzata (HTTP {he.code})", m
                 
-                # Sovraccarico Google (503) o rate limit (429): pausa di 1 secondo e riprova
                 if he.code in [503, 429]:
                     time.sleep(1.0)
                     continue
-                
-                # Se è 404 (modello non esiste) esce dal tentativo e passa al modello successivo
                 break
             except Exception as e:
                 last_err = f"{m} err: {str(e)}"
@@ -202,36 +158,16 @@ async def transduce(req: TransductionRequest):
         engine_used = f"neural_{used_model}"
     else:
         engine_used = "fallback_local"
-        lower = req.user_text.lower()
-        if any(w in lower for w in ["slego", "torna", "scappa", "fugge", "libero"]):
-            synth = {
-                "situation_title": "Scarica Cinetica & Circuito SEEKING",
-                "panksepp": "SEEKING",
-                "arousal": 85,
-                "valence": 15,
-                "thought": "La rimozione improvvisa del vincolo attiva una scarica dopaminergica ed esplorativa massiccia! L'odore dell'aria aperta crea tunnel attentivo e sordità selettiva al richiamo vocale umano.",
-                "explanation": "La fuga momentanea post-sgancio non è disubbidienza né dispetto: è l'effetto fionda da confinamento prossemico (SEEKING cinestesico ad altissimo arousal).",
-                "steps": [
-                    "Non inseguire il cane correndogli dietro: aumenteresti la fuga predatoria fittizia.",
-                    "Fermati, accovacciati di lato a 45 gradi e richiama muovendoti all'indietro.",
-                    "Premia sempre il ritorno spontaneo senza rimproveri a posteriori."
-                ],
-                "forbidden": [
-                    "Non punire mai il cane quando finalmente torna da te.",
-                    "Non urlare con tono rabbioso: inibirebbe il rientro."
-                ]
-            }
-        else:
-            synth = {
-                "situation_title": "Valutazione Etologica",
-                "panksepp": "SEEKING",
-                "arousal": 50,
-                "valence": 10,
-                "thought": f"Analizzo la situazione '{req.user_text}' con i miei sensi.",
-                "explanation": f"Elaborazione di sicurezza (Dettaglio API: {api_err}).",
-                "steps": ["Osserva la postura generale.", "Mantieni calma e spazio vitale."],
-                "forbidden": ["Evita reazioni improvvise o rimproveri."]
-            }
+        synth = {
+            "situation_title": "Valutazione Etologica",
+            "panksepp": "SEEKING",
+            "arousal": 50,
+            "valence": 10,
+            "thought": f"Analizzo la situazione '{req.user_text}' con i miei sensi.",
+            "explanation": f"Elaborazione di sicurezza (Dettaglio: {api_err}).",
+            "steps": ["Osserva la postura generale.", "Mantieni calma e spazio vitale."],
+            "forbidden": ["Evita reazioni improvvise o rimproveri."]
+        }
 
     return {
         "status": "success",
@@ -266,6 +202,6 @@ async def test_gemini():
 async def root():
     return {
         "status": "BioDog Neural Engine Online",
-        "modello_rilevato": ACTIVE_MODEL or _find_live_model(GEMINI_API_KEY) if GEMINI_API_KEY else "Nessuna chiave"
+        "modello_rilevato": ACTIVE_MODEL if ACTIVE_MODEL else "In attesa della prima chiamata"
     }
-
+```
