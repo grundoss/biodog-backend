@@ -7,11 +7,17 @@ import time
 from typing import Optional, Tuple
 import urllib.error
 import urllib.request
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.3.0")
+# Libreria Stripe ufficiale
+try:
+    import stripe
+except ImportError:
+    stripe = None
+
+app = FastAPI(title="BioDog.io Neural Engine", version="3.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,8 +27,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==================== VARIABILI D'AMBIENTE ====================
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'").replace("[", "").replace("]", "")
 ACTIVE_MODEL = None
+
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "").strip()
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "").strip()
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://itjfyjyzaornkintpefd.supabase.co").strip().rstrip("/")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
+
+if stripe and STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
 
 # ==================== SCHEMI DATI ====================
 class TransductionRequest(BaseModel):
@@ -32,6 +49,10 @@ class TransductionRequest(BaseModel):
     size: str = Field(default="medium")
     tail: str = Field(default="long")
     observed_time_hours: Optional[float] = 0.0
+
+class CreateCheckoutRequest(BaseModel):
+    user_id: str
+    user_email: str
 
 # ==================== CALCOLO SENSORIALE FISICO ====================
 class SensoryEngine:
@@ -103,7 +124,7 @@ def _find_live_model(api_key: str) -> str:
     list_url = f"{pt}://{dm}/v1beta/models?key={api_key}"
 
     try:
-        req = urllib.request.Request(list_url, headers={"User-Agent": "BioDog/3.3"})
+        req = urllib.request.Request(list_url, headers={"User-Agent": "BioDog/3.4"})
         with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             available = [
@@ -153,7 +174,7 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.3"},
+            headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.4"},
             method="POST"
         )
         
@@ -191,7 +212,150 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
 
     return None, last_err, "failed"
 
-# ==================== ENDPOINT PRINCIPALE ====================
+# ==================== SUPABASE HELPER PER STRIPE ====================
+def _update_supabase_subscription(user_id: str, email: str, customer_id: str, sub_id: str, is_active: bool) -> bool:
+    """Aggiorna lo stato dell'abbonamento su Supabase usando la REST API con Service Role Key."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        print("[Supabase Warning] SUPABASE_URL o SUPABASE_SERVICE_KEY non impostati.")
+        return False
+
+    url = f"{SUPABASE_URL}/rest/v1/user_subscriptions"
+    payload = [{
+        "user_id": user_id,
+        "email": email,
+        "stripe_customer_id": customer_id,
+        "stripe_subscription_id": sub_id,
+        "is_active": is_active
+    }]
+
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+    }
+
+    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f"[Supabase] Abbonamento aggiornato per {email}: active={is_active}")
+            return resp.status in [200, 201]
+    except Exception as e:
+        print(f"[Supabase Error] Impossibile aggiornare sottoscrizione: {e}")
+        return False
+
+def _deactivate_subscription_by_stripe_id(sub_id: str, customer_id: str = "") -> bool:
+    """Disattiva un abbonamento scaduto o cancellato su Supabase."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return False
+
+    url = f"{SUPABASE_URL}/rest/v1/user_subscriptions?stripe_subscription_id=eq.{sub_id}"
+    payload = {"is_active": False}
+
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="PATCH")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f"[Supabase] Abbonamento {sub_id} disattivato con successo.")
+            return True
+    except Exception as e:
+        print(f"[Supabase Error] Disattivazione fallita: {e}")
+        return False
+
+# ==================== ENDPOINT STRIPE ====================
+@app.post("/api/v1/stripe/create-checkout-session")
+async def create_checkout_session(req: CreateCheckoutRequest):
+    """Crea una sessione Stripe Checkout per l'abbonamento a 1,99 €/mese."""
+    if not stripe or not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Stripe SDK o STRIPE_SECRET_KEY non configurati sul server.")
+    
+    if not STRIPE_PRICE_ID:
+        raise HTTPException(status_code=500, detail="STRIPE_PRICE_ID non configurato nelle variabili d'ambiente.")
+
+    stripe.api_key = STRIPE_SECRET_KEY
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            customer_email=req.user_email,
+            client_reference_id=req.user_id,
+            metadata={
+                "user_id": req.user_id,
+                "user_email": req.user_email
+            },
+            line_items=[{
+                "price": STRIPE_PRICE_ID,
+                "quantity": 1
+            }],
+            mode="subscription",
+            success_url="https://biodog.io/?payment=success&session_id={CHECKOUT_SESSION_ID}",
+            cancel_url="https://biodog.io/?payment=cancelled",
+            allow_promotion_codes=True
+        )
+        return {"checkout_url": session.url}
+    except Exception as e:
+        print(f"[Stripe Error] Creazione sessione fallita: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/v1/stripe/webhook")
+async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Header(None)):
+    """Riceve gli eventi automatici di Stripe (completamento pagamento, cancellazione, rinnovo)."""
+    payload = await request.body()
+
+    if not stripe:
+        raise HTTPException(status_code=500, detail="Stripe non disponibile.")
+
+    event = None
+    if STRIPE_WEBHOOK_SECRET and stripe_signature:
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, stripe_signature, STRIPE_WEBHOOK_SECRET
+            )
+        except Exception as e:
+            print(f"[Stripe Webhook Signature Error]: {e}")
+            raise HTTPException(status_code=400, detail=f"Errore firma webhook: {str(e)}")
+    else:
+        try:
+            event = json.loads(payload.decode("utf-8"))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail="Payload non valido.")
+
+    event_type = event.get("type", "")
+    data_obj = event.get("data", {}).get("object", {})
+
+    print(f"[Stripe Webhook Ricevuto] Evento: {event_type}")
+
+    # 1. Pagamento iniziale completato con successo
+    if event_type == "checkout.session.completed":
+        user_id = data_obj.get("client_reference_id") or data_obj.get("metadata", {}).get("user_id")
+        email = data_obj.get("customer_email") or data_obj.get("metadata", {}).get("user_email")
+        customer_id = data_obj.get("customer")
+        sub_id = data_obj.get("subscription")
+
+        if user_id:
+            _update_supabase_subscription(user_id, email or "", customer_id or "", sub_id or "", True)
+
+    # 2. Rinnovo mensile riuscito
+    elif event_type == "invoice.payment_succeeded":
+        sub_id = data_obj.get("subscription")
+        customer_id = data_obj.get("customer")
+        email = data_obj.get("customer_email")
+
+    # 3. Abbonamento cancellato o non rinnovato
+    elif event_type in ["customer.subscription.deleted", "customer.subscription.paused"]:
+        sub_id = data_obj.get("id")
+        customer_id = data_obj.get("customer")
+        if sub_id:
+            _deactivate_subscription_by_stripe_id(sub_id, customer_id or "")
+
+    return {"status": "success"}
+
+# ==================== ENDPOINT PRINCIPALE TRADUZIONE ====================
 @app.post("/api/v1/umwelt/transduce")
 async def transduce(req: TransductionRequest):
     bio = SensoryEngine.compute(req)
@@ -269,7 +433,7 @@ async def transduce(req: TransductionRequest):
         "neural_synthesis": synth
     }
 
-# ==================== ENDPOINT DIAGNOSTICO ====================
+# ==================== ENDPOINT DIAGNOSTICI ====================
 @app.get("/test-gemini")
 async def test_gemini():
     synth, err, model = await asyncio.to_thread(
@@ -288,5 +452,6 @@ async def test_gemini():
 async def root():
     return {
         "status": "BioDog Neural Engine Online",
-        "modello_rilevato": ACTIVE_MODEL or _find_live_model(GEMINI_API_KEY) if GEMINI_API_KEY else "Nessuna chiave"
+        "modello_rilevato": ACTIVE_MODEL or _find_live_model(GEMINI_API_KEY) if GEMINI_API_KEY else "Nessuna chiave",
+        "stripe_abilitato": bool(stripe and STRIPE_SECRET_KEY and STRIPE_PRICE_ID)
     }
