@@ -17,7 +17,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.4.0")
+app = FastAPI(title="BioDog.io Neural Engine", version="3.4.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -143,7 +143,7 @@ def _find_live_model(api_key: str) -> str:
     except Exception as e:
         print(f"ListModels error: {e}")
 
-    ACTIVE_MODEL = "gemini-3.8-flash"
+    ACTIVE_MODEL = "gemini-2.5-flash"
     return ACTIVE_MODEL
 
 def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str], str]:
@@ -154,9 +154,8 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
     
     models_pool = [
         discovered,
-        "gemini-3.8-flash",
-        "gemini-flash-latest",
-        "gemini-2.5-flash"
+        "gemini-2.5-flash",
+        "gemini-flash-latest"
     ]
     candidate_models = list(dict.fromkeys([m for m in models_pool if m]))
 
@@ -270,7 +269,7 @@ def _deactivate_subscription_by_stripe_id(sub_id: str, customer_id: str = "") ->
 # ==================== ENDPOINT STRIPE ====================
 @app.post("/api/v1/stripe/create-checkout-session")
 async def create_checkout_session(req: CreateCheckoutRequest):
-    """Crea una sessione Stripe Checkout per l'abbonamento a 1,99 €/mese."""
+    """Crea una sessione Stripe Checkout con Dynamic Payment Methods gestiti da Dashboard."""
     if not stripe or not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Stripe SDK o STRIPE_SECRET_KEY non configurati sul server.")
     
@@ -280,8 +279,8 @@ async def create_checkout_session(req: CreateCheckoutRequest):
     stripe.api_key = STRIPE_SECRET_KEY
 
     try:
+        # Nota: payment_method_types è rimosso per conformità con le nuove API Stripe (Dynamic Payment Methods)
         session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
             customer_email=req.user_email,
             client_reference_id=req.user_id,
             metadata={
