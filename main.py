@@ -1,4 +1,3 @@
-```python
 import asyncio
 import json
 import math
@@ -204,4 +203,4 @@ async def root():
         "status": "BioDog Neural Engine Online",
         "modello_rilevato": ACTIVE_MODEL if ACTIVE_MODEL else "In attesa della prima chiamata"
     }
-```
+
