@@ -4,6 +4,7 @@ import math
 import os
 import re
 import time
+import traceback
 from typing import Optional, Tuple
 import urllib.error
 import urllib.request
@@ -17,7 +18,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.4.1")
+app = FastAPI(title="BioDog.io Neural Engine", version="3.4.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -215,15 +216,15 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
 def _update_supabase_subscription(user_id: str, email: str, customer_id: str, sub_id: str, is_active: bool) -> bool:
     """Aggiorna lo stato dell'abbonamento su Supabase usando la REST API con Service Role Key."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
-        print("[Supabase Warning] SUPABASE_URL o SUPABASE_SERVICE_KEY non impostati.")
+        print("[Supabase Warning] SUPABASE_URL o SUPABASE_SERVICE_KEY non configurati su Render!")
         return False
 
-    url = f"{SUPABASE_URL}/rest/v1/user_subscriptions"
+    url = f"{SUPABASE_URL}/rest/v1/user_subscriptions?on_conflict=user_id"
     payload = [{
         "user_id": user_id,
-        "email": email,
-        "stripe_customer_id": customer_id,
-        "stripe_subscription_id": sub_id,
+        "email": email or "",
+        "stripe_customer_id": customer_id or "",
+        "stripe_subscription_id": sub_id or "",
         "is_active": is_active
     }]
 
@@ -237,8 +238,12 @@ def _update_supabase_subscription(user_id: str, email: str, customer_id: str, su
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            print(f"[Supabase] Abbonamento aggiornato per {email}: active={is_active}")
+            print(f"[Supabase] Abbonamento aggiornato con successo per {email}: active={is_active}")
             return resp.status in [200, 201]
+    except urllib.error.HTTPError as he:
+        err_msg = he.read().decode("utf-8")
+        print(f"[Supabase HTTPError {he.code}]: {err_msg}")
+        return False
     except Exception as e:
         print(f"[Supabase Error] Impossibile aggiornare sottoscrizione: {e}")
         return False
@@ -279,7 +284,6 @@ async def create_checkout_session(req: CreateCheckoutRequest):
     stripe.api_key = STRIPE_SECRET_KEY
 
     try:
-        # Nota: payment_method_types è rimosso per conformità con le nuove API Stripe (Dynamic Payment Methods)
         session = stripe.checkout.Session.create(
             customer_email=req.user_email,
             client_reference_id=req.user_id,
@@ -303,56 +307,74 @@ async def create_checkout_session(req: CreateCheckoutRequest):
 
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Header(None)):
-    """Riceve gli eventi automatici di Stripe (completamento pagamento, cancellazione, rinnovo)."""
-    payload = await request.body()
+    """Riceve e gestisce in sicurezza gli eventi di Stripe con logging anti-crash."""
+    try:
+        payload = await request.body()
 
-    if not stripe:
-        raise HTTPException(status_code=500, detail="Stripe non disponibile.")
+        if not stripe:
+            print("[Stripe Webhook Error] Libreria Stripe non inizializzata.")
+            raise HTTPException(status_code=500, detail="Stripe non disponibile.")
 
-    event = None
-    if STRIPE_WEBHOOK_SECRET and stripe_signature:
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, stripe_signature, STRIPE_WEBHOOK_SECRET
-            )
-        except Exception as e:
-            print(f"[Stripe Webhook Signature Error]: {e}")
-            raise HTTPException(status_code=400, detail=f"Errore firma webhook: {str(e)}")
-    else:
-        try:
-            event = json.loads(payload.decode("utf-8"))
-        except Exception as e:
-            raise HTTPException(status_code=400, detail="Payload non valido.")
+        event = None
+        if STRIPE_WEBHOOK_SECRET and stripe_signature:
+            try:
+                event = stripe.Webhook.construct_event(
+                    payload, stripe_signature, STRIPE_WEBHOOK_SECRET
+                )
+            except Exception as e:
+                print(f"[Stripe Webhook Signature Error]: {e}")
+                raise HTTPException(status_code=400, detail=f"Firma webhook non valida: {str(e)}")
+        else:
+            try:
+                event = json.loads(payload.decode("utf-8"))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail="Payload JSON non valido.")
 
-    event_type = event.get("type", "")
-    data_obj = event.get("data", {}).get("object", {})
+        # Estrazione sicura dei dati (compatibile sia con API v1 che v2 Workbench)
+        event_type = event.get("type") or event.get("event_type") or ""
+        event_data = event.get("data") or {}
+        data_obj = event_data.get("object") or event.get("object") or {}
 
-    print(f"[Stripe Webhook Ricevuto] Evento: {event_type}")
+        print(f"[Stripe Webhook Ricevuto] Tipo evento: {event_type}")
 
-    # 1. Pagamento iniziale completato con successo
-    if event_type == "checkout.session.completed":
-        user_id = data_obj.get("client_reference_id") or data_obj.get("metadata", {}).get("user_id")
-        email = data_obj.get("customer_email") or data_obj.get("metadata", {}).get("user_email")
-        customer_id = data_obj.get("customer")
-        sub_id = data_obj.get("subscription")
+        # 1. Pagamento iniziale completato con successo
+        if event_type == "checkout.session.completed":
+            metadata = data_obj.get("metadata") or {}
+            user_id = data_obj.get("client_reference_id") or metadata.get("user_id")
+            email = data_obj.get("customer_email") or metadata.get("user_email")
+            customer_id = data_obj.get("customer")
+            sub_id = data_obj.get("subscription") or data_obj.get("id")
 
-        if user_id:
-            _update_supabase_subscription(user_id, email or "", customer_id or "", sub_id or "", True)
+            print(f"[Stripe Webhook Details] user_id: {user_id}, email: {email}, sub_id: {sub_id}")
 
-    # 2. Rinnovo mensile riuscito
-    elif event_type == "invoice.payment_succeeded":
-        sub_id = data_obj.get("subscription")
-        customer_id = data_obj.get("customer")
-        email = data_obj.get("customer_email")
+            if user_id:
+                success = _update_supabase_subscription(user_id, email or "", customer_id or "", sub_id or "", True)
+                if not success:
+                    print("[Stripe Webhook Warning] Scrittura su Supabase non riuscita (controlla SUPABASE_SERVICE_KEY).")
 
-    # 3. Abbonamento cancellato o non rinnovato
-    elif event_type in ["customer.subscription.deleted", "customer.subscription.paused"]:
-        sub_id = data_obj.get("id")
-        customer_id = data_obj.get("customer")
-        if sub_id:
-            _deactivate_subscription_by_stripe_id(sub_id, customer_id or "")
+        # 2. Rinnovo mensile riuscito
+        elif event_type == "invoice.payment_succeeded":
+            sub_id = data_obj.get("subscription")
+            customer_id = data_obj.get("customer")
+            email = data_obj.get("customer_email")
+            print(f"[Stripe Webhook] Rinnovo per {email}, sub: {sub_id}")
 
-    return {"status": "success"}
+        # 3. Abbonamento cancellato o non rinnovato
+        elif event_type in ["customer.subscription.deleted", "customer.subscription.paused"]:
+            sub_id = data_obj.get("id") or data_obj.get("subscription")
+            customer_id = data_obj.get("customer")
+            if sub_id:
+                _deactivate_subscription_by_stripe_id(sub_id, customer_id or "")
+
+        return {"status": "success", "processed_event": event_type}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        print(f"[Stripe Webhook Fatal Error]: {e}")
+        # Ritorna errore 500 con dettaglio nel body visibile nella dashboard Stripe
+        raise HTTPException(status_code=500, detail=f"Errore elaborazione webhook: {str(e)}")
 
 # ==================== ENDPOINT PRINCIPALE TRADUZIONE ====================
 @app.post("/api/v1/umwelt/transduce")
