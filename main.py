@@ -18,7 +18,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.4.4")
+app = FastAPI(title="BioDog.io Neural Engine", version="3.4.5")
 
 app.add_middleware(
     CORSMiddleware,
@@ -125,8 +125,9 @@ def _find_live_model(api_key: str) -> str:
     list_url = f"{pt}://{dm}/v1beta/models?key={api_key}"
 
     try:
+        # AUMENTATO IL TIMEOUT DA 6 A 12 SECONDI
         req = urllib.request.Request(list_url, headers={"User-Agent": "BioDog/3.4"})
-        with urllib.request.urlopen(req, timeout=6) as resp:
+        with urllib.request.urlopen(req, timeout=12) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             available = [
                 m["name"].replace("models/", "")
@@ -185,7 +186,8 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
         
         for attempt in range(2):
             try:
-                with urllib.request.urlopen(req, timeout=12) as response:
+                # AUMENTATO IL TIMEOUT DA 12 A 30 SECONDI PER RISOLVERE ERRORE TIME OUT
+                with urllib.request.urlopen(req, timeout=30) as response:
                     if response.status == 200:
                         body = json.loads(response.read().decode("utf-8"))
                         parts = body["candidates"][0]["content"]["parts"]
@@ -219,7 +221,6 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
 
 # ==================== SUPABASE HELPER PER STRIPE ====================
 def _update_supabase_subscription(user_id: str, email: str, customer_id: str, sub_id: str, is_active: bool) -> bool:
-    """Aggiorna lo stato dell'abbonamento su Supabase usando la REST API con Service Role Key."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         print("[Supabase Warning] SUPABASE_URL o SUPABASE_SERVICE_KEY non configurati su Render!")
         return False
@@ -254,7 +255,6 @@ def _update_supabase_subscription(user_id: str, email: str, customer_id: str, su
         return False
 
 def _deactivate_subscription_by_stripe_id(sub_id: str, customer_id: str = "") -> bool:
-    """Disattiva un abbonamento scaduto o cancellato su Supabase."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         return False
 
@@ -279,7 +279,6 @@ def _deactivate_subscription_by_stripe_id(sub_id: str, customer_id: str = "") ->
 # ==================== ENDPOINT STRIPE ====================
 @app.post("/api/v1/stripe/create-checkout-session")
 async def create_checkout_session(req: CreateCheckoutRequest):
-    """Crea una sessione Stripe Checkout con Dynamic Payment Methods gestiti da Dashboard."""
     if not stripe or not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Stripe SDK o STRIPE_SECRET_KEY non configurati sul server.")
     
@@ -312,7 +311,6 @@ async def create_checkout_session(req: CreateCheckoutRequest):
 
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Header(None)):
-    """Riceve e gestisce in sicurezza gli eventi di Stripe convertendoli sempre in dizionario."""
     try:
         payload = await request.body()
 
@@ -335,7 +333,6 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
             except Exception as e:
                 raise HTTPException(status_code=400, detail="Payload JSON non valido.")
 
-        # Conversione universale dell'oggetto Stripe in dict Python standard (.to_dict() per evitare AttributeError)
         if hasattr(event, "to_dict"):
             event_dict = event.to_dict()
         elif isinstance(event, dict):
@@ -346,7 +343,6 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
             except Exception:
                 event_dict = {}
 
-        # Estrazione sicura dei dati
         event_type = event_dict.get("type") or event_dict.get("event_type") or ""
         event_data = event_dict.get("data") or {}
         data_obj = event_data.get("object") or event_dict.get("object") or {}
@@ -358,7 +354,6 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
 
         print(f"[Stripe Webhook Ricevuto] Tipo evento: {event_type}")
 
-        # 1. Pagamento iniziale completato con successo
         if event_type == "checkout.session.completed":
             metadata = data_obj.get("metadata") or {}
             user_id = data_obj.get("client_reference_id") or metadata.get("user_id")
@@ -373,23 +368,15 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
             customer_id = data_obj.get("customer") or ""
             sub_id = data_obj.get("subscription") or data_obj.get("id") or ""
 
-            print(f"[Stripe Webhook Details] user_id: {user_id}, email: {email}, sub_id: {sub_id}")
-
             if user_id:
                 success = _update_supabase_subscription(str(user_id), email, str(customer_id), str(sub_id), True)
-                if not success:
-                    print("[Stripe Webhook Warning] Scrittura su Supabase non riuscita (verifica SUPABASE_SERVICE_KEY).")
             else:
                 print(f"[Stripe Webhook Info] Evento completato senza user_id associato (email: {email}).")
 
-        # 2. Rinnovo mensile riuscito
         elif event_type == "invoice.payment_succeeded":
             sub_id = data_obj.get("subscription") or ""
-            customer_id = data_obj.get("customer") or ""
             email = data_obj.get("customer_email") or ""
-            print(f"[Stripe Webhook] Rinnovo per {email}, sub: {sub_id}")
 
-        # 3. Abbonamento cancellato o non rinnovato
         elif event_type in ["customer.subscription.deleted", "customer.subscription.paused"]:
             sub_id = data_obj.get("id") or data_obj.get("subscription") or ""
             customer_id = data_obj.get("customer") or ""
@@ -481,21 +468,6 @@ async def transduce(req: TransductionRequest):
         },
         "sensory_telemetry": bio,
         "neural_synthesis": synth
-    }
-
-# ==================== ENDPOINT DIAGNOSTICI ====================
-@app.get("/test-gemini")
-async def test_gemini():
-    synth, err, model = await asyncio.to_thread(
-        _call_gemini_api,
-        GEMINI_API_KEY,
-        'Rispondi SOLO con questo JSON: {"status": "ok", "test": "success"}'
-    )
-    return {
-        "ok": bool(synth),
-        "modello_agganciato": model,
-        "risposta_gemini": synth,
-        "eventuale_errore": err
     }
 
 @app.get("/")
