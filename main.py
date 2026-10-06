@@ -18,7 +18,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.4.3")
+app = FastAPI(title="BioDog.io Neural Engine", version="3.4.4")
 
 app.add_middleware(
     CORSMiddleware,
@@ -133,18 +133,22 @@ def _find_live_model(api_key: str) -> str:
                 for m in data.get("models", [])
                 if "generateContent" in m.get("supportedGenerationMethods", [])
             ]
-            for priority in ["3.8-flash", "3.6-flash", "flash-latest", "2.5-flash"]:
+            # Priorità al nuovo standard gemini-3.8-flash escludendo versioni ritirate
+            for priority in ["3.8-flash", "3.6-flash", "flash-latest"]:
                 for m in available:
-                    if priority in m.lower():
+                    if priority in m.lower() and "2.5" not in m.lower():
                         ACTIVE_MODEL = m
                         return ACTIVE_MODEL
             if available:
-                ACTIVE_MODEL = available[0]
-                return ACTIVE_MODEL
+                for candidate in available:
+                    if "2.5" not in candidate.lower():
+                        ACTIVE_MODEL = candidate
+                        return ACTIVE_MODEL
     except Exception as e:
         print(f"ListModels error: {e}")
 
-    ACTIVE_MODEL = "gemini-2.5-flash"
+    # Fallback predefinito aggiornato
+    ACTIVE_MODEL = "gemini-3.8-flash"
     return ACTIVE_MODEL
 
 def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Optional[str], str]:
@@ -154,13 +158,14 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
     discovered = _find_live_model(api_key)
     
     models_pool = [
+        "gemini-3.8-flash",
         discovered,
-        "gemini-2.5-flash",
+        "gemini-3.6-flash",
         "gemini-flash-latest"
     ]
-    candidate_models = list(dict.fromkeys([m for m in models_pool if m]))
+    candidate_models = list(dict.fromkeys([m for m in models_pool if m and "2.5" not in m.lower()]))
 
-    last_err = "Nessun modello ha risposto"
+    last_err = "Nessun modello valido ha risposto"
     pt = "https"
     dm = "generativelanguage.googleapis.com"
 
@@ -330,7 +335,7 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
             except Exception as e:
                 raise HTTPException(status_code=400, detail="Payload JSON non valido.")
 
-        # Conversione universale dell'oggetto Stripe in dict Python standard
+        # Conversione universale dell'oggetto Stripe in dict Python standard (.to_dict() per evitare AttributeError)
         if hasattr(event, "to_dict"):
             event_dict = event.to_dict()
         elif isinstance(event, dict):
