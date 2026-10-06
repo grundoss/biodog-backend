@@ -1,8 +1,6 @@
 import asyncio
 import json
-import math
 import os
-import re
 import time
 import traceback
 from typing import Optional, Tuple
@@ -18,7 +16,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.4.5")
+app = FastAPI(title="BioDog.io Neural Engine", version="3.8")
 
 app.add_middleware(
     CORSMiddleware,
@@ -125,30 +123,24 @@ def _find_live_model(api_key: str) -> str:
     list_url = f"{pt}://{dm}/v1beta/models?key={api_key}"
 
     try:
-        # AUMENTATO IL TIMEOUT DA 6 A 12 SECONDI
-        req = urllib.request.Request(list_url, headers={"User-Agent": "BioDog/3.4"})
-        with urllib.request.urlopen(req, timeout=12) as resp:
+        req = urllib.request.Request(list_url, headers={"User-Agent": "BioDog/3.8"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             available = [
                 m["name"].replace("models/", "")
                 for m in data.get("models", [])
                 if "generateContent" in m.get("supportedGenerationMethods", [])
             ]
-            # Priorità al nuovo standard gemini-3.8-flash escludendo versioni ritirate
-            for priority in ["3.8-flash", "3.6-flash", "flash-latest"]:
+            
+            # Priorità esclusiva alle nuove versioni 3.8 indicate dall'errore
+            for priority in ["3.8-flash", "3.5-flash", "1.5-flash"]:
                 for m in available:
-                    if priority in m.lower() and "2.5" not in m.lower():
+                    if priority in m.lower():
                         ACTIVE_MODEL = m
-                        return ACTIVE_MODEL
-            if available:
-                for candidate in available:
-                    if "2.5" not in candidate.lower():
-                        ACTIVE_MODEL = candidate
                         return ACTIVE_MODEL
     except Exception as e:
         print(f"ListModels error: {e}")
 
-    # Fallback predefinito aggiornato
     ACTIVE_MODEL = "gemini-3.8-flash"
     return ACTIVE_MODEL
 
@@ -158,13 +150,12 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
 
     discovered = _find_live_model(api_key)
     
+    # Pool purificato centrato sulla versione 3.8
     models_pool = [
         "gemini-3.8-flash",
-        discovered,
-        "gemini-3.6-flash",
-        "gemini-flash-latest"
+        discovered
     ]
-    candidate_models = list(dict.fromkeys([m for m in models_pool if m and "2.5" not in m.lower()]))
+    candidate_models = list(dict.fromkeys([m for m in models_pool if m]))
 
     last_err = "Nessun modello valido ha risposto"
     pt = "https"
@@ -180,14 +171,14 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.4"},
+            headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.8"},
             method="POST"
         )
         
         for attempt in range(2):
             try:
-                # AUMENTATO IL TIMEOUT DA 12 A 30 SECONDI PER RISOLVERE ERRORE TIME OUT
-                with urllib.request.urlopen(req, timeout=30) as response:
+                # TIMEOUT ESTESO A 60 SECONDI PER EVITARE TIMEOUT DI RETE
+                with urllib.request.urlopen(req, timeout=60) as response:
                     if response.status == 200:
                         body = json.loads(response.read().decode("utf-8"))
                         parts = body["candidates"][0]["content"]["parts"]
@@ -206,12 +197,15 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
                 err_body = he.read().decode("utf-8")
                 last_err = f"{m} HTTP {he.code}: {err_body}"
                 
-                if he.code in [400, 403]:
-                    return None, f"Chiave non autorizzata (HTTP {he.code})", m
+                if he.code in [400, 403, 404]:
+                    break 
                 
                 if he.code in [503, 429]:
                     time.sleep(1.0)
                     continue
+                break
+            except TimeoutError:
+                last_err = f"{m} err: Timeout superato (60s)"
                 break
             except Exception as e:
                 last_err = f"{m} err: {str(e)}"
@@ -222,7 +216,7 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
 # ==================== SUPABASE HELPER PER STRIPE ====================
 def _update_supabase_subscription(user_id: str, email: str, customer_id: str, sub_id: str, is_active: bool) -> bool:
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
-        print("[Supabase Warning] SUPABASE_URL o SUPABASE_SERVICE_KEY non configurati su Render!")
+        print("[Supabase Warning] Chiavi non configurate!")
         return False
 
     url = f"{SUPABASE_URL}/rest/v1/user_subscriptions?on_conflict=user_id"
@@ -243,15 +237,11 @@ def _update_supabase_subscription(user_id: str, email: str, customer_id: str, su
 
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            print(f"[Supabase] Abbonamento aggiornato con successo per {email} (user: {user_id}): active={is_active}")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            print(f"[Supabase] Abbonamento OK per {email}: active={is_active}")
             return resp.status in [200, 201]
-    except urllib.error.HTTPError as he:
-        err_msg = he.read().decode("utf-8")
-        print(f"[Supabase HTTPError {he.code}]: {err_msg}")
-        return False
     except Exception as e:
-        print(f"[Supabase Error] Impossibile aggiornare sottoscrizione: {e}")
+        print(f"[Supabase Error]: {e}")
         return False
 
 def _deactivate_subscription_by_stripe_id(sub_id: str, customer_id: str = "") -> bool:
@@ -260,7 +250,6 @@ def _deactivate_subscription_by_stripe_id(sub_id: str, customer_id: str = "") ->
 
     url = f"{SUPABASE_URL}/rest/v1/user_subscriptions?stripe_subscription_id=eq.{sub_id}"
     payload = {"is_active": False}
-
     headers = {
         "apikey": SUPABASE_SERVICE_KEY,
         "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
@@ -270,35 +259,23 @@ def _deactivate_subscription_by_stripe_id(sub_id: str, customer_id: str = "") ->
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="PATCH")
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            print(f"[Supabase] Abbonamento {sub_id} disattivato con successo.")
             return True
-    except Exception as e:
-        print(f"[Supabase Error] Disattivazione fallita: {e}")
+    except Exception:
         return False
 
 # ==================== ENDPOINT STRIPE ====================
 @app.post("/api/v1/stripe/create-checkout-session")
 async def create_checkout_session(req: CreateCheckoutRequest):
     if not stripe or not STRIPE_SECRET_KEY:
-        raise HTTPException(status_code=500, detail="Stripe SDK o STRIPE_SECRET_KEY non configurati sul server.")
+        raise HTTPException(status_code=500, detail="Stripe non configurato.")
     
-    if not STRIPE_PRICE_ID:
-        raise HTTPException(status_code=500, detail="STRIPE_PRICE_ID non configurato nelle variabili d'ambiente.")
-
     stripe.api_key = STRIPE_SECRET_KEY
-
     try:
         session = stripe.checkout.Session.create(
             customer_email=req.user_email,
             client_reference_id=req.user_id,
-            metadata={
-                "user_id": req.user_id,
-                "user_email": req.user_email
-            },
-            line_items=[{
-                "price": STRIPE_PRICE_ID,
-                "quantity": 1
-            }],
+            metadata={"user_id": req.user_id, "user_email": req.user_email},
+            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
             mode="subscription",
             success_url="https://biodog.io/?payment=success&session_id={CHECKOUT_SESSION_ID}",
             cancel_url="https://biodog.io/?payment=cancelled",
@@ -306,80 +283,41 @@ async def create_checkout_session(req: CreateCheckoutRequest):
         )
         return {"checkout_url": session.url}
     except Exception as e:
-        print(f"[Stripe Error] Creazione sessione fallita: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Header(None)):
     try:
         payload = await request.body()
-
         if not stripe:
-            print("[Stripe Webhook Error] Libreria Stripe non inizializzata.")
             raise HTTPException(status_code=500, detail="Stripe non disponibile.")
 
         event = None
         if STRIPE_WEBHOOK_SECRET and stripe_signature:
             try:
-                event = stripe.Webhook.construct_event(
-                    payload, stripe_signature, STRIPE_WEBHOOK_SECRET
-                )
+                event = stripe.Webhook.construct_event(payload, stripe_signature, STRIPE_WEBHOOK_SECRET)
             except Exception as e:
-                print(f"[Stripe Webhook Signature Error]: {e}")
-                raise HTTPException(status_code=400, detail=f"Firma webhook non valida: {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Firma invalida: {str(e)}")
         else:
-            try:
-                event = json.loads(payload.decode("utf-8"))
-            except Exception as e:
-                raise HTTPException(status_code=400, detail="Payload JSON non valido.")
+            event = json.loads(payload.decode("utf-8"))
 
-        if hasattr(event, "to_dict"):
-            event_dict = event.to_dict()
-        elif isinstance(event, dict):
-            event_dict = event
-        else:
-            try:
-                event_dict = json.loads(payload.decode("utf-8"))
-            except Exception:
-                event_dict = {}
-
-        event_type = event_dict.get("type") or event_dict.get("event_type") or ""
-        event_data = event_dict.get("data") or {}
-        data_obj = event_data.get("object") or event_dict.get("object") or {}
-
-        if hasattr(data_obj, "to_dict"):
-            data_obj = data_obj.to_dict()
-        elif not isinstance(data_obj, dict):
-            data_obj = {}
-
-        print(f"[Stripe Webhook Ricevuto] Tipo evento: {event_type}")
+        event_dict = event.to_dict() if hasattr(event, "to_dict") else (event if isinstance(event, dict) else json.loads(payload.decode("utf-8")))
+        event_type = event_dict.get("type", "")
+        data_obj = event_dict.get("data", {}).get("object", {})
 
         if event_type == "checkout.session.completed":
-            metadata = data_obj.get("metadata") or {}
+            metadata = data_obj.get("metadata", {})
             user_id = data_obj.get("client_reference_id") or metadata.get("user_id")
-            
-            customer_details = data_obj.get("customer_details") or {}
-            email = (
-                data_obj.get("customer_email")
-                or customer_details.get("email")
-                or metadata.get("user_email")
-                or ""
-            )
-            customer_id = data_obj.get("customer") or ""
-            sub_id = data_obj.get("subscription") or data_obj.get("id") or ""
+            email = data_obj.get("customer_details", {}).get("email") or metadata.get("user_email") or ""
+            customer_id = data_obj.get("customer", "")
+            sub_id = data_obj.get("subscription", "")
 
             if user_id:
-                success = _update_supabase_subscription(str(user_id), email, str(customer_id), str(sub_id), True)
-            else:
-                print(f"[Stripe Webhook Info] Evento completato senza user_id associato (email: {email}).")
-
-        elif event_type == "invoice.payment_succeeded":
-            sub_id = data_obj.get("subscription") or ""
-            email = data_obj.get("customer_email") or ""
+                _update_supabase_subscription(str(user_id), email, str(customer_id), str(sub_id), True)
 
         elif event_type in ["customer.subscription.deleted", "customer.subscription.paused"]:
-            sub_id = data_obj.get("id") or data_obj.get("subscription") or ""
-            customer_id = data_obj.get("customer") or ""
+            sub_id = data_obj.get("id", "")
+            customer_id = data_obj.get("customer", "")
             if sub_id:
                 _deactivate_subscription_by_stripe_id(str(sub_id), str(customer_id))
 
@@ -388,9 +326,7 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
     except HTTPException:
         raise
     except Exception as e:
-        traceback.print_exc()
-        print(f"[Stripe Webhook Fatal Error]: {e}")
-        raise HTTPException(status_code=500, detail=f"Errore elaborazione webhook: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== ENDPOINT PRINCIPALE TRADUZIONE ====================
 @app.post("/api/v1/umwelt/transduce")
@@ -405,56 +341,26 @@ async def transduce(req: TransductionRequest):
         engine_used = f"neural_{used_model}"
     else:
         engine_used = "fallback_local"
-        lower = req.user_text.lower()
-        if any(w in lower for w in ["slego", "torna", "scappa", "fugge", "libero"]):
-            synth = {
-                "situation_title": "Scarica Cinetica & Circuito SEEKING",
-                "panksepp": "SEEKING",
-                "panksepp_label": "SEEKING / Esplorazione Cinetica",
-                "arousal": 85,
-                "valence": 15,
-                "thought": "Lo sgancio improvviso dal vincolo attiva una scarica dopaminergica massiccia! L'odore dell'aria aperta crea tunnel attentivo e sordità selettiva al richiamo vocale.",
-                "sensory": {
-                    "smell": "Flusso massiccio di molecole ambientali nell'aria fresca che saturano i turbinati.",
-                    "sight": "Orizzonte aperto ad ampio raggio; movimento rapido di stimoli periferici.",
-                    "hearing": "La voce umana distante è filtrata dal rumore del vento e dal battito cardiaco elevato."
-                },
-                "human_body_language": {
-                    "voice": "Tono grave, calmo e cadenzato; non gridare mai per non stimolare la fuga predatoria fittizia.",
-                    "posture": "Accovacciati di lato a 45 gradi, muoviti all'indietro per invitarlo al rientro spontaneo."
-                },
-                "explanation": "La fuga post-sgancio non è disubbidienza né dispetto: è l'effetto fionda da confinamento prossemico (SEEKING cinestesico ad alto arousal).",
-                "steps": [
-                    "Non inseguire il cane correndogli dietro: aumenteresti la fuga predatoria fittizia.",
-                    "Fermati, accovacciati di lato a 45 gradi e richiama muovendoti all'indietro.",
-                    "Premia sempre il ritorno spontaneo senza rimproveri a posteriori."
-                ],
-                "forbidden": [
-                    "Non punire mai il cane quando finalmente torna da te.",
-                    "Non urlare con tono rabbioso o concitato: inibirebbe il rientro."
-                ]
-            }
-        else:
-            synth = {
-                "situation_title": "Valutazione Etologica",
-                "panksepp": "SEEKING",
-                "panksepp_label": "SEEKING / Analisi Ambientale",
-                "arousal": 50,
-                "valence": 10,
-                "thought": f"Analizzo la situazione '{req.user_text}' con i miei recettori sensoriali.",
-                "sensory": {
-                    "smell": "Scansione olfattiva di routine dell'ambiente circostante.",
-                    "sight": "Messa a fuoco frontale bilanciata.",
-                    "hearing": "Percezione dei rumori di fondo ambientali."
-                },
-                "human_body_language": {
-                    "voice": "Tono neutro, calmo e rassicurante.",
-                    "posture": "Postura morbida ed eretta senza incombenza fisica."
-                },
-                "explanation": f"Elaborazione di sicurezza (Dettaglio API: {api_err}).",
-                "steps": ["Osserva la postura generale.", "Mantieni calma e spazio vitale."],
-                "forbidden": ["Evita reazioni improvvise o rimproveri."]
-            }
+        synth = {
+            "situation_title": "Valutazione Etologica",
+            "panksepp": "SEEKING",
+            "panksepp_label": "SEEKING / Analisi Ambientale",
+            "arousal": 50,
+            "valence": 10,
+            "thought": f"Analizzo la situazione '{req.user_text}' con i miei recettori sensoriali.",
+            "sensory": {
+                "smell": "Scansione olfattiva di routine dell'ambiente circostante.",
+                "sight": "Messa a fuoco frontale bilanciata.",
+                "hearing": "Percezione dei rumori di fondo ambientali."
+            },
+            "human_body_language": {
+                "voice": "Tono neutro, calmo e rassicurante.",
+                "posture": "Postura morbida ed eretta senza incombenza fisica."
+            },
+            "explanation": f"Elaborazione di sicurezza (Dettaglio API: {api_err}).",
+            "steps": ["Osserva la postura generale.", "Mantieni calma e spazio vitale."],
+            "forbidden": ["Evita reazioni improvvise o rimproveri."]
+        }
 
     return {
         "status": "success",
@@ -474,6 +380,6 @@ async def transduce(req: TransductionRequest):
 async def root():
     return {
         "status": "BioDog Neural Engine Online",
-        "modello_rilevato": ACTIVE_MODEL or _find_live_model(GEMINI_API_KEY) if GEMINI_API_KEY else "Nessuna chiave",
+        "modello_rilevato": ACTIVE_MODEL or "Attesa prima chiamata",
         "stripe_abilitato": bool(stripe and STRIPE_SECRET_KEY and STRIPE_PRICE_ID)
     }
