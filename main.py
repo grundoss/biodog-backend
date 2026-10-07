@@ -1,4 +1,3 @@
-```python
 import asyncio
 import json
 import os
@@ -361,4 +360,4 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
         customer_id = data_obj.get("customer", "")
 
     return {"status": "success"}
-```
+
