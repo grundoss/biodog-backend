@@ -305,8 +305,8 @@ async def create_checkout_session(req: CreateCheckoutRequest):
         raise HTTPException(status_code=500, detail="ID Prezzo Stripe mancante.")
 
     try:
+        # Nota: La riga payment_method_types=['card'] è stata RIMOSSA per supportare i metodi dinamici!
         session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
             customer_email=req.user_email,
             client_reference_id=req.user_id,
             metadata={"user_id": req.user_id},
@@ -360,4 +360,3 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
         customer_id = data_obj.get("customer", "")
 
     return {"status": "success"}
-
