@@ -31,7 +31,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'").r
 ACTIVE_MODEL = "gemini-3.8-flash"
 
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "").strip()
-# Nuove variabili per i due piani
 STRIPE_PRICE_ID_PREMIUM = os.getenv("STRIPE_PRICE_ID_PREMIUM", os.getenv("STRIPE_PRICE_ID", "")).strip()
 STRIPE_PRICE_ID_PRO = os.getenv("STRIPE_PRICE_ID_PRO", "").strip()
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
@@ -253,7 +252,7 @@ async def transduce(req: TransductionRequest):
             "arousal": 50, "valence": 0, "thought": "Sto cercando di elaborare i segnali dell'ambiente...",
             "sensory": {"smell": "-", "sight": "-", "hearing": "-", "touch": "-"},
             "human_body_language": {"voice": "-", "posture": "-"},
-            "explanation": f"Errore: {api_err}", "steps": ["-"], "forbidden": ["-"]
+            "explanation": f"Errore API: il server ha risposto in modo anomalo. Riprova. ({api_err})", "steps": ["-"], "forbidden": ["-"]
         }
     return {"status": "success", "engine": used_model, "neural_synthesis": synth}
 
