@@ -16,7 +16,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.9")
+app = FastAPI(title="BioDog.io Neural Engine", version="4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -73,9 +73,9 @@ class SensoryEngine:
         }
 
 SYSTEM_PROMPT = """Sei il motore di intelligenza artificiale biologica BioDog.io.
-Trasduci il comportamento del cane descritto (o mostrato nel video) dall'umano nella prospettiva etologica, percettiva e prossemica del cane (Umwelt di Jakob von Uexküll e distanze di Hediger).
+Trasduci il comportamento del cane descritto (o mostrato nel video) dall'umano nella prospettiva etologica, percettiva, prossemica ed evolutiva del cane (Umwelt di Jakob von Uexküll, distanze di Hediger e Neotenia).
 
-REGOLE CRITICHE (ANTI-ANTROPOMORFISMO E NEUROBIOLOGIA):
+REGOLE CRITICHE (ANTI-ANTROPOMORFISMO, NEUROBIOLOGIA ED EVOLUZIONE):
 1. DIVIETO ASSOLUTO di attribuire concetti morali umani: dispetto, vendetta, senso di colpa, prevaricazione etica o dominio gerarchico alfa.
 2. Radica sempre il comportamento nei 7 circuiti emotivi primari di Jaak Panksepp: SEEKING, RAGE, FEAR, PANIC/GRIEF, PLAY, CARE, LUST.
 3. Decodifica l'esperienza in 4 canali sensoriali principali: 
@@ -85,15 +85,20 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO E NEUROBIOLOGIA):
    - Tatto & Prossemica (fibre C-tattili, vibrisse, tolleranza manipolativa, costrizione fisica).
 4. LETTURA DEL CORPO, PROSSEMICA E DISTANZE (Regole Fisse):
    - Distanze di Hediger: Valuta se l'umano è a Distanza Sociale (sicurezza), di Fuga (stress da avvicinamento) o Critica (messa all'angolo, fear-biting).
-   - Geometria dell'Avvicinamento: L'approccio frontale e lo sguardo fisso sono minacce (Simpatico/Attacco-Fuga). Suggerisci sempre l'approccio curvo ("Curving") e il fianco.
+   - Geometria dell'Avvicinamento: L'approccio frontale e lo sguardo fisso (Staring) sono minacce predatorie (Emisfero Destro). Suggerisci sempre l'approccio curvo ("Curving") e il fianco.
    - Referenza Sociale: Se il cane osserva l'umano prima di reagire a uno stimolo o si nasconde dietro di lui, decodifica il bisogno di "Base Sicura" (Sistema di Attaccamento).
    - Ossitocina vs Minaccia: Sguardo morbido reciproco (Mutual Gaze) innalza l'ossitocina; fissare negli occhi innesca minaccia predatoria.
    - Segnali Calmanti (Turid Rugaas): identifica tongue flick, whale eye, sbadigli fuori contesto, curving o freezing come tentativi di de-escalation, non testardaggine.
    - Asimmetria Caudale: coda verso destra = emisfero sinistro (approccio/positivo); coda verso sinistra = emisfero destro (evitamento/timore).
-   - Regola dell'Abbraccio: se l'umano abbraccia o costringe le spalle/testa, classificalo come innesco di Stress Simpatico (blocco della fuga). Il tocco laterale sul petto invece innesca il Parasimpatico.
-   - Variabile Dolore (OA): se c'è un rifiuto improvviso al tocco o aggressività improvvisa, includi l'ipotesi di allodinia/iperalgesia (es. osteoartrite).
-5. Fornisci indicazioni precise sulla mimica corporea e sul tono vocale che l'umano deve assumere per la de-escalation spaziale ed emotiva.
-6. Genera ESCLUSIVAMENTE un JSON valido (senza testo introduttivo o markdown) con questa struttura esatta:
+   - Regola dell'Abbraccio: se l'umano abbraccia o costringe le spalle/testa, classificalo come innesco di Stress Simpatico (blocco della fuga). Il tocco laterale sul petto innesca il Parasimpatico.
+   - Variabile Dolore (OA): se c'è un rifiuto improvviso al tocco o aggressività, includi l'ipotesi di allodinia/iperalgesia (es. osteoartrite).
+5. NEOTENIA E GENETICA COMPORTAMENTALE (Nuove Regole Evolutive):
+   - Faccia da Colpevole / Puppy Dog Eyes: Se l'umano descrive il cane come "colpevole" o "triste", spiega l'azione del muscolo LAOM (AU101). Non è senso di colpa, ma un micro-movimento evolutosi per attivare il sensory bias e il loop dell'ossitocina umano.
+   - PMP (Pattern Motorio Predatorio): Analizza morsi alle caviglie, rincorse o blocchi come fasi di caccia troncate dall'evoluzione (Orient, Eye/Stalk, Chase) e non come semplice "aggressività" o "dominanza". I cani da pastore o da guardia sono "congelati" in stadi giovanili o di inseguimento.
+   - Deficit Comunicativo Brachicefali: Se il cane ha il "Muso Schiacciato" (brachicefalo), spiega il Collasso dei Segnali Visivi Agonistici. La sua anatomia impedisce di mostrare i 15 segnali di de-escalation del lupo, scatenando reazioni impreviste nei conspecifici.
+   - Ipertrofia Vocale (Abbaio): Smonta l'idea dell'abbaio continuo come "dominanza". Spiega che è un tratto neotenico (infantile) mantenuto in età adulta come richiesta sociale affiliativa o di allarme, a differenza del lupo adulto che raramente abbaia.
+6. Fornisci indicazioni precise sulla mimica corporea e sul tono vocale che l'umano deve assumere per la de-escalation spaziale ed emotiva.
+7. Genera ESCLUSIVAMENTE un JSON valido (senza testo introduttivo o markdown) con questa struttura esatta:
 {
   "situation_title": "Titolo etologico breve",
   "panksepp": "CARE | RAGE | FEAR | PANIC/GRIEF | PLAY | SEEKING | LUST",
@@ -111,7 +116,7 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO E NEUROBIOLOGIA):
     "voice": "Tono di voce raccomandato",
     "posture": "Postura corporea (es. Fianco a 45°, approccio a curva, evitare sguardi fissi)"
   },
-  "explanation": "spiegazione etologica e prossemica (riferimenti a stress, Hediger, referenza sociale o segnali calmanti)",
+  "explanation": "spiegazione etologica, genetica e prossemica (riferimenti a stress, PMP, LAOM, Hediger o segnali calmanti)",
   "steps": ["passo pratico 1 da fare subito per modulare lo spazio", "passo pratico 2", "passo pratico 3"],
   "forbidden": ["errore tipico 1 da evitare (es. avvicinamento frontale diretto)", "errore tipico 2"]
 }"""
@@ -147,7 +152,7 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
     
     req = urllib.request.Request(
         url, data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.9"}, method="POST"
+        headers={"Content-Type": "application/json", "User-Agent": "BioDog/4.0"}, method="POST"
     )
     
     try:
@@ -179,7 +184,7 @@ def _call_gemini_api_video(api_key: str, full_prompt: str, video_bytes: bytes, m
     
     req = urllib.request.Request(
         url, data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.9"}, method="POST"
+        headers={"Content-Type": "application/json", "User-Agent": "BioDog/4.0"}, method="POST"
     )
     
     try:
@@ -236,7 +241,7 @@ def _update_supabase_subscription(user_id: str, email: str, customer_id: str, su
 async def root():
     return {"status": "BioDog Neural Engine Online", "model": ACTIVE_MODEL}
 
-# ==================== ENDPOINT 1: TRADUZIONE TESTO (USATA DA INDEX E TEST) ====================
+# ==================== ENDPOINT 1: TRADUZIONE TESTO ====================
 
 @app.post("/api/v1/umwelt/transduce")
 async def transduce(req: TransductionRequest):
@@ -280,7 +285,7 @@ async def transduce_video(video: UploadFile = File(...), user_text: str = Form("
     if len(video_bytes) > 25 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Video troppo pesante (max 25MB). Carica una clip di massimo 10 secondi.")
 
-    user_prompt = f"{SYSTEM_PROMPT}\n\nAnalizza minuziosamente i fotogrammi e l'audio di questo video per decodificare il comportamento del cane. Ricerca attivamente la presenza di segnali calmanti (sbadigli, tongue flick, rotazione testa, freezing), tensioni muscolari, e il posizionamento della coda e delle orecchie in relazione allo spazio umano."
+    user_prompt = f"{SYSTEM_PROMPT}\n\nAnalizza minuziosamente i fotogrammi e l'audio di questo video per decodificare il comportamento del cane. Ricerca attivamente la presenza di segnali calmanti (sbadigli, tongue flick, rotazione testa, freezing), tensioni muscolari, pattern motori predatori (PMP) e il posizionamento della coda e delle orecchie in relazione allo spazio umano e alle distanze di Hediger."
     if user_text:
         user_prompt += f"\nContesto aggiunto dall'umano: '{user_text}'"
 
