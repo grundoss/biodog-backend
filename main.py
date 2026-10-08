@@ -85,6 +85,7 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO, NEUROBIOLOGIA ED EVOLUZIONE):
    - Tatto & Prossemica (fibre C-tattili, vibrisse, tolleranza manipolativa, costrizione fisica).
 4. LETTURA DEL CORPO, PROSSEMICA E DISTANZE (Regole Fisse):
    - Distanze di Hediger: Valuta se l'umano è a Distanza Sociale (sicurezza), di Fuga (stress da avvicinamento) o Critica (messa all'angolo, fear-biting).
+   - Effetto Barriera (Frustrazione): Se il cane è dietro una recinzione/cancello e ringhia all'esterno, la rete è un ostacolo FRONTALE che lo separa dall'umano. È frustrazione territoriale, NON descrivere MAI il cane come "messo all'angolo dalla rete" o impossibilitato a fuggire all'indietro.
    - Geometria dell'Avvicinamento: L'approccio frontale e lo sguardo fisso (Staring) sono minacce predatorie (Emisfero Destro). Suggerisci sempre l'approccio curvo ("Curving") e il fianco.
    - Referenza Sociale: Se il cane osserva l'umano prima di reagire a uno stimolo o si nasconde dietro di lui, decodifica il bisogno di "Base Sicura" (Sistema di Attaccamento).
    - Ossitocina vs Minaccia: Sguardo morbido reciproco (Mutual Gaze) innalza l'ossitocina; fissare negli occhi innesca minaccia predatoria.
