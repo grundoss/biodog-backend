@@ -16,7 +16,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="3.8")
+app = FastAPI(title="BioDog.io Neural Engine", version="3.9")
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,12 +75,21 @@ class SensoryEngine:
 SYSTEM_PROMPT = """Sei il motore di intelligenza artificiale biologica BioDog.io.
 Trasduci il comportamento del cane descritto (o mostrato nel video) dall'umano nella prospettiva etologica e percettiva del cane (Umwelt di Jakob von Uexküll).
 
-REGOLE CRITICHE (ANTI-ANTROPOMORFISMO DPO):
+REGOLE CRITICHE (ANTI-ANTROPOMORFISMO E NEUROBIOLOGIA):
 1. DIVIETO ASSOLUTO di attribuire concetti morali umani: dispetto, vendetta, senso di colpa, prevaricazione etica o dominio gerarchico alfa.
 2. Radica sempre il comportamento nei 7 circuiti emotivi primari di Jaak Panksepp: SEEKING, RAGE, FEAR, PANIC/GRIEF, PLAY, CARE, LUST.
-3. Decodifica l'esperienza nei tre canali sensoriali principali del cane: Olfatto (molecole, decadimento VOC), Vista (movimento, deuteranopia, altezza da terra), Udito (frequenze, prosodia).
-4. Fornisci indicazioni precise sulla mimica corporea e sul tono vocale che l'umano deve assumere.
-5. Genera ESCLUSIVAMENTE un JSON valido (senza testo introduttivo o markdown) con questa struttura esatta:
+3. Decodifica l'esperienza in 4 canali sensoriali principali: 
+   - Olfatto (molecole, decadimento VOC)
+   - Vista (movimento, deuteranopia, altezza da terra)
+   - Udito (frequenze, prosodia)
+   - Tatto (fibre C-tattili, vibrisse, recettori di pressione, zone di tolleranza simpatica/parasimpatica).
+4. LETTURA DEL CORPO E PROSSEMICA (Regole Fisse):
+   - Segnali Calmanti (Turid Rugaas): identifica tongue flick, whale eye, sbadigli fuori contesto o freezing come tentativi di de-escalation, non come testardaggine.
+   - Asimmetria Caudale: coda verso destra = emisfero sinistro (approccio/positivo); coda verso sinistra = emisfero destro (evitamento/timore).
+   - Regola dell'Abbraccio e Contenzione: se l'umano abbraccia o costringe le spalle/testa, classificalo come innesco di Stress Simpatico (blocco della fuga). Il tocco laterale sul petto invece innesca il Parasimpatico (Tono Vagale).
+   - Variabile Dolore (OA): se c'è un rifiuto improvviso al tocco, aggressività improvvisa o freezing alla manipolazione, includi l'ipotesi clinica di allodinia/iperalgesia cronica (es. osteoartrite).
+5. Fornisci indicazioni precise sulla mimica corporea e sul tono vocale che l'umano deve assumere.
+6. Genera ESCLUSIVAMENTE un JSON valido (senza testo introduttivo o markdown) con questa struttura esatta:
 {
   "situation_title": "Titolo etologico breve",
   "panksepp": "CARE | RAGE | FEAR | PANIC/GRIEF | PLAY | SEEKING | LUST",
@@ -89,17 +98,18 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO DPO):
   "valence": numero intero da -50 a +50,
   "thought": "pensiero del cane in prima persona: rapido, sensoriale, privo di morale umana",
   "sensory": {
-    "smell": "Cosa percepisce il tartufo in questo momento (es. molecole odorose, assenza di feromoni)",
-    "sight": "Cosa vede dagli occhi (prospettiva bassa, movimento rapido, sagoma incombente)",
-    "hearing": "Cosa sente con le orecchie (toni acuti, frequenze gravi, passi, rumori improvvisi)"
+    "smell": "Cosa percepisce il tartufo in questo momento",
+    "sight": "Cosa vede dagli occhi (prospettiva, sagoma incombente)",
+    "hearing": "Cosa sente con le orecchie",
+    "touch": "Cosa percepiscono i recettori tattili (es. fibre C-LTMRs), vibrisse o sensazione di costrizione fisica"
   },
   "human_body_language": {
     "voice": "Tono di voce raccomandato per l'umano (es. Silenzio assoluto, tono basso e distensivo)",
-    "posture": "Postura corporea raccomandata (es. Fianco a 45°, spalle rilassate, evitare contatto visivo diretto)"
+    "posture": "Postura corporea raccomandata (es. Fianco a 45°, spalle rilassate, non chinarsi frontalmente)"
   },
-  "explanation": "spiegazione etologica chiara e accessibile per il proprietario",
+  "explanation": "spiegazione etologica chiara che includa (se pertinenti) riferimenti a stress simpatico/parasimpatico, segnali calmanti, asimmetria o recettori",
   "steps": ["passo pratico 1 da fare subito", "passo pratico 2", "passo pratico 3"],
-  "forbidden": ["errore tipico 1 da evitare assolutamente", "errore tipico 2"]
+  "forbidden": ["errore tipico 1 da evitare (es. non abbracciare costringendo le spalle)", "errore tipico 2 da evitare"]
 }"""
 
 def _extract_clean_json(raw_text: str) -> dict:
@@ -133,7 +143,7 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
     
     req = urllib.request.Request(
         url, data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.8"}, method="POST"
+        headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.9"}, method="POST"
     )
     
     try:
@@ -165,7 +175,7 @@ def _call_gemini_api_video(api_key: str, full_prompt: str, video_bytes: bytes, m
     
     req = urllib.request.Request(
         url, data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.8"}, method="POST"
+        headers={"Content-Type": "application/json", "User-Agent": "BioDog/3.9"}, method="POST"
     )
     
     try:
@@ -222,7 +232,7 @@ def _update_supabase_subscription(user_id: str, email: str, customer_id: str, su
 async def root():
     return {"status": "BioDog Neural Engine Online", "model": ACTIVE_MODEL}
 
-# ==================== ENDPOINT 1: TRADUZIONE TESTO (USATA DA INDEX.HTML E TEST.HTML) ====================
+# ==================== ENDPOINT 1: TRADUZIONE TESTO (USATA DA INDEX E TEST) ====================
 
 @app.post("/api/v1/umwelt/transduce")
 async def transduce(req: TransductionRequest):
@@ -242,7 +252,8 @@ async def transduce(req: TransductionRequest):
             "sensory": {
                 "smell": "Percezione ordinaria delle molecole d'aria.",
                 "sight": "Messa a fuoco frontale bilanciata.",
-                "hearing": "Percezione dei rumori di fondo ambientali."
+                "hearing": "Percezione dei rumori di fondo ambientali.",
+                "touch": "Percezione tattile e recettoriale neutra."
             },
             "human_body_language": {
                 "voice": "Tono neutro, calmo e rassicurante.",
@@ -255,7 +266,7 @@ async def transduce(req: TransductionRequest):
 
     return {"status": "success", "engine": used_model, "neural_synthesis": synth}
 
-# ==================== ENDPOINT 2: TRADUZIONE VIDEO (USATA DA TEST.HTML) ====================
+# ==================== ENDPOINT 2: TRADUZIONE VIDEO ====================
 
 @app.post("/api/v1/umwelt/transduce-video")
 async def transduce_video(video: UploadFile = File(...), user_text: str = Form("")):
@@ -265,7 +276,7 @@ async def transduce_video(video: UploadFile = File(...), user_text: str = Form("
     if len(video_bytes) > 25 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Video troppo pesante (max 25MB). Carica una clip di massimo 10 secondi.")
 
-    user_prompt = f"{SYSTEM_PROMPT}\n\nAnalizza minuziosamente i fotogrammi e l'audio di questo video per decodificare il comportamento del cane, i suoi movimenti, le orecchie, la coda e la postura."
+    user_prompt = f"{SYSTEM_PROMPT}\n\nAnalizza minuziosamente i fotogrammi e l'audio di questo video per decodificare il comportamento del cane. Ricerca attivamente la presenza di segnali calmanti (sbadigli, tongue flick, rotazione testa, freezing), tensioni muscolari, e il posizionamento della coda e delle orecchie in relazione allo spazio umano."
     if user_text:
         user_prompt += f"\nContesto aggiunto dall'umano: '{user_text}'"
 
@@ -282,7 +293,8 @@ async def transduce_video(video: UploadFile = File(...), user_text: str = Form("
             "sensory": {
                 "smell": "Scambio chimico attivo durante l'azione.",
                 "sight": "Assetto visivo orientato allo stimolo ripreso nel video.",
-                "hearing": "Frequenze audio registrate nella clip."
+                "hearing": "Frequenze audio registrate nella clip.",
+                "touch": "Interazione somatosensoriale o posturale in corso."
             },
             "human_body_language": {
                 "voice": "Tono distensivo e pacato.",
@@ -295,7 +307,7 @@ async def transduce_video(video: UploadFile = File(...), user_text: str = Form("
 
     return {"status": "success", "engine": f"{used_model}-vision", "neural_synthesis": synth}
 
-# ==================== ENDPOINT 3: STRIPE CREATE CHECKOUT SESSION (PER INDEX.HTML) ====================
+# ==================== ENDPOINT 3: STRIPE CREATE CHECKOUT SESSION ====================
 
 @app.post("/api/v1/stripe/create-checkout-session")
 async def create_checkout_session(req: CreateCheckoutRequest):
@@ -305,7 +317,6 @@ async def create_checkout_session(req: CreateCheckoutRequest):
         raise HTTPException(status_code=500, detail="ID Prezzo Stripe mancante.")
 
     try:
-        # Nota: La riga payment_method_types=['card'] è stata RIMOSSA per supportare i metodi dinamici!
         session = stripe.checkout.Session.create(
             customer_email=req.user_email,
             client_reference_id=req.user_id,
@@ -322,7 +333,7 @@ async def create_checkout_session(req: CreateCheckoutRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# ==================== ENDPOINT 4: STRIPE WEBHOOK (PER INDEX.HTML) ====================
+# ==================== ENDPOINT 4: STRIPE WEBHOOK ====================
 
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Header(None)):
@@ -338,7 +349,6 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
     event_type = event.get("type", "")
     data_obj = event.get("data", {}).get("object", {})
 
-    # 1. Pagamento completato con successo
     if event_type == "checkout.session.completed":
         user_id = data_obj.get("client_reference_id") or (data_obj.get("metadata") or {}).get("user_id")
         email = data_obj.get("customer_details", {}).get("email") or data_obj.get("customer_email") or ""
@@ -348,13 +358,11 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
         if user_id:
             _update_supabase_subscription(user_id, email, customer_id, sub_id, True)
 
-    # 2. Abbonamento rinnovato o modificato
     elif event_type == "invoice.payment_succeeded":
         sub_id = data_obj.get("subscription", "")
         customer_id = data_obj.get("customer", "")
         email = data_obj.get("customer_email", "")
 
-    # 3. Abbonamento cancellato
     elif event_type == "customer.subscription.deleted":
         sub_id = data_obj.get("id", "")
         customer_id = data_obj.get("customer", "")
