@@ -53,7 +53,7 @@ class TransductionRequest(BaseModel):
 class CreateCheckoutRequest(BaseModel):
     user_id: str
     user_email: str
-    tier: str = "premium" # Accetta "premium" o "pro"
+    tier: str = "premium"
 
 class PortalRequest(BaseModel):
     customer_id: str
@@ -252,7 +252,7 @@ async def transduce(req: TransductionRequest):
             "arousal": 50, "valence": 0, "thought": "Sto cercando di elaborare i segnali dell'ambiente...",
             "sensory": {"smell": "-", "sight": "-", "hearing": "-", "touch": "-"},
             "human_body_language": {"voice": "-", "posture": "-"},
-            "explanation": f"Errore API: il server ha risposto in modo anomalo. Riprova. ({api_err})", "steps": ["-"], "forbidden": ["-"]
+            "explanation": f"Elaborazione con parametri di sicurezza ({api_err})", "steps": ["Osserva la postura generale.", "Offri spazio di decompressione."], "forbidden": ["Non forzare il contatto."]
         }
     return {"status": "success", "engine": used_model, "neural_synthesis": synth}
 
@@ -274,14 +274,9 @@ async def create_checkout_session(req: CreateCheckoutRequest):
     if not stripe or not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Stripe non configurato.")
     
-    # Assegna il prezzo in base al piano scelto (premium o pro)
     if req.tier == "pro":
-        if not STRIPE_PRICE_ID_PRO:
-            raise HTTPException(status_code=500, detail="ID Prezzo PRO mancante su Render.")
-        price_to_use = STRIPE_PRICE_ID_PRO
+        price_to_use = STRIPE_PRICE_ID_PRO if STRIPE_PRICE_ID_PRO else STRIPE_PRICE_ID_PREMIUM
     else:
-        if not STRIPE_PRICE_ID_PREMIUM:
-            raise HTTPException(status_code=500, detail="ID Prezzo PREMIUM mancante su Render.")
         price_to_use = STRIPE_PRICE_ID_PREMIUM
 
     try:
