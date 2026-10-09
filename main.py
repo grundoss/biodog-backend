@@ -32,6 +32,7 @@ ACTIVE_MODEL = "gemini-3.8-flash"
 
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "").strip()
 STRIPE_PRICE_ID_PREMIUM = os.getenv("STRIPE_PRICE_ID_PREMIUM", os.getenv("STRIPE_PRICE_ID", "")).strip()
+STRIPE_PRICE_ID_STANDARD = os.getenv("STRIPE_PRICE_ID_STANDARD", "").strip()
 STRIPE_PRICE_ID_PRO = os.getenv("STRIPE_PRICE_ID_PRO", "").strip()
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 
@@ -276,6 +277,8 @@ async def create_checkout_session(req: CreateCheckoutRequest):
     
     if req.tier == "pro":
         price_to_use = STRIPE_PRICE_ID_PRO if STRIPE_PRICE_ID_PRO else STRIPE_PRICE_ID_PREMIUM
+    elif req.tier == "standard":
+        price_to_use = STRIPE_PRICE_ID_STANDARD if STRIPE_PRICE_ID_STANDARD else STRIPE_PRICE_ID_PREMIUM
     else:
         price_to_use = STRIPE_PRICE_ID_PREMIUM
 
