@@ -50,6 +50,7 @@ class TransductionRequest(BaseModel):
     ears: str = Field(default="prick")
     size: str = Field(default="medium")
     tail: str = Field(default="long")
+    lang: Optional[str] = Field(default="it", description="Lingua di output richiesta ('it' oppure 'en')")
     observed_time_hours: Optional[float] = 0.0
 
 class CreateCheckoutRequest(BaseModel):
@@ -105,7 +106,10 @@ REGOLE CRITICHE (ANTI-ANTROPOMORFISMO, EVOLUZIONE E PROSSEMICA):
    - Deficit Brachicefali: Se il cane ha il "Muso Schiacciato", spiega il Collasso dei Segnali Visivi Agonistici. La sua anatomia (no coda, no muso lungo) impedisce di mostrare i 15 segnali di de-escalation del lupo.
    - Ipertrofia dell'Abbaio: Spiega che l'abbaio incessante non è "dominanza", ma un tratto paedomorfico/infantile (il lupo adulto abbaia raramente).
 6. Fornisci indicazioni precise sulla mimica corporea e sul tono vocale che l'umano deve assumere per la de-escalation spaziale ed emotiva.
-7. Genera ESCLUSIVAMENTE un JSON valido (senza testo introduttivo o markdown) con questa struttura esatta:
+7. DIRETTIVA SULLA LINGUA DI OUTPUT (BILINGUAL DIRECTIVE):
+   - Se lang == 'en' (o se il testo/input dell'utente è redatto in inglese): genera TUTTI i campi del JSON (situation_title, panksepp_label, thought, sensory, human_body_language, explanation, steps, forbidden) RIGOROSAMENTE in INGLESE fluente, naturale ed etologicamente accurato (adottando la corretta terminologia scientifica: Frontal Barrier Frustration, Hediger Distances, Curving Approach, LAOM Neoteny, ecc.).
+   - Altrimenti (se lang == 'it'): genera TUTTI i campi del JSON in ITALIANO.
+8. Genera ESCLUSIVAMENTE un JSON valido (senza testo introduttivo o markdown) con questa struttura esatta:
 {
   "situation_title": "Titolo etologico breve",
   "panksepp": "CARE | RAGE | FEAR | PANIC/GRIEF | PLAY | SEEKING | LUST",
@@ -247,28 +251,44 @@ async def root():
 @app.post("/api/v1/umwelt/transduce")
 async def transduce(req: TransductionRequest):
     bio = SensoryEngine.compute(req)
-    user_prompt = f"""{SYSTEM_PROMPT}\n\nComportamento osservato: "{req.user_text}"\nProfilo biologico:\n- Cranio: {req.snout} (Turbinati olfattivi: {bio['turbinates_cm2']} cm²)\n- Campo Visivo: {bio['fov_degrees']}° (Acuità: {bio['acuity_cpd']} cpd)\n- Occhi da terra: {bio['eye_height_cm']} cm\n- Coda: {bio['tail_bias']}\n- Orecchie: {bio['ear_mobility']}"""
+    target_lang = "en" if (req.lang and req.lang.lower().strip() == "en") else "it"
+    lang_directive = "OUTPUT IN NATURAL ENGLISH (lang=en)" if target_lang == "en" else "OUTPUT IN ITALIAN (lang=it)"
+
+    user_prompt = f"""{SYSTEM_PROMPT}\n\nTARGET LANGUAGE: {lang_directive}\n\nComportamento osservato / Observed behavior: "{req.user_text}"\nProfilo biologico / Biological profile:\n- Cranio/Skull: {req.snout} (Turbinati olfattivi / Olfactory turbinates: {bio['turbinates_cm2']} cm²)\n- Campo Visivo / FOV: {bio['fov_degrees']}° (Acuità / Acuity: {bio['acuity_cpd']} cpd)\n- Occhi da terra / Eye height: {bio['eye_height_cm']} cm\n- Coda / Tail: {bio['tail_bias']}\n- Orecchie / Ears: {bio['ear_mobility']}"""
     synth, api_err, used_model = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, user_prompt)
     if not synth:
-        synth = {
-            "situation_title": "Elaborazione di sicurezza", "panksepp": "CARE", "panksepp_label": "Ricongiungimento",
-            "arousal": 50, "valence": 0, "thought": "Sto cercando di elaborare i segnali dell'ambiente...",
-            "sensory": {"smell": "-", "sight": "-", "hearing": "-", "touch": "-"},
-            "human_body_language": {"voice": "-", "posture": "-"},
-            "explanation": f"Elaborazione con parametri di sicurezza ({api_err})", "steps": ["Osserva la postura generale.", "Offri spazio di decompressione."], "forbidden": ["Non forzare il contatto."]
-        }
-    return {"status": "success", "engine": used_model, "neural_synthesis": synth}
+        if target_lang == "en":
+            synth = {
+                "situation_title": "Safety Processing Mode", "panksepp": "CARE", "panksepp_label": "Affiliative Reunion (CARE)",
+                "arousal": 50, "valence": 0, "thought": "I am processing spatial and sensory cues in the environment...",
+                "sensory": {"smell": "-", "sight": "-", "hearing": "-", "touch": "-"},
+                "human_body_language": {"voice": "Calm, low-pitched and slow", "posture": "Side-on 45° Curving stance, avoid frontal looming"},
+                "explanation": f"Safety fallback ethological processing ({api_err})", "steps": ["Observe overall body posture.", "Grant spatial decompression."], "forbidden": ["Never force frontal contact."]
+            }
+        else:
+            synth = {
+                "situation_title": "Elaborazione di sicurezza", "panksepp": "CARE", "panksepp_label": "Ricongiungimento",
+                "arousal": 50, "valence": 0, "thought": "Sto cercando di elaborare i segnali dell'ambiente...",
+                "sensory": {"smell": "-", "sight": "-", "hearing": "-", "touch": "-"},
+                "human_body_language": {"voice": "-", "posture": "-"},
+                "explanation": f"Elaborazione con parametri di sicurezza ({api_err})", "steps": ["Osserva la postura generale.", "Offri spazio di decompressione."], "forbidden": ["Non forzare il contatto."]
+            }
+    return {"status": "success", "engine": used_model, "lang": target_lang, "neural_synthesis": synth}
 
 @app.post("/api/v1/umwelt/transduce-video")
-async def transduce_video(video: UploadFile = File(...), user_text: str = Form("")):
+async def transduce_video(video: UploadFile = File(...), user_text: str = Form(""), lang: str = Form("it")):
     video_bytes = await video.read()
     if len(video_bytes) > 25 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Video troppo pesante (max 25MB).")
-    user_prompt = f"{SYSTEM_PROMPT}\n\nAnalizza i fotogrammi di questo video per decodificare il comportamento del cane."
-    if user_text: user_prompt += f"\nContesto: '{user_text}'"
+    
+    target_lang = "en" if (lang and lang.lower().strip() == "en") else "it"
+    lang_directive = "OUTPUT IN NATURAL ENGLISH (lang=en)" if target_lang == "en" else "OUTPUT IN ITALIAN (lang=it)"
+
+    user_prompt = f"{SYSTEM_PROMPT}\n\nTARGET LANGUAGE: {lang_directive}\n\nAnalizza i fotogrammi di questo video per decodificare il comportamento del cane."
+    if user_text: user_prompt += f"\nContesto / Context: '{user_text}'"
     synth, api_err, used_model = await asyncio.to_thread(_call_gemini_api_video, GEMINI_API_KEY, user_prompt, video_bytes, video.content_type)
     if not synth: raise HTTPException(status_code=500, detail=f"Errore API Video: {api_err}")
-    return {"status": "success", "engine": f"{used_model}-vision", "neural_synthesis": synth}
+    return {"status": "success", "engine": f"{used_model}-vision", "lang": target_lang, "neural_synthesis": synth}
 
 # ==================== STRIPE ====================
 
