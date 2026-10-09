@@ -3,6 +3,7 @@ import json
 import os
 import time
 import base64
+import traceback
 from typing import Optional, Tuple
 import urllib.error
 import urllib.request
@@ -16,7 +17,7 @@ try:
 except ImportError:
     stripe = None
 
-app = FastAPI(title="BioDog.io Neural Engine", version="4.1")
+app = FastAPI(title="BioDog.io Neural Engine", version="4.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -158,7 +159,7 @@ def _call_gemini_api(api_key: str, full_prompt: str) -> Tuple[Optional[dict], Op
     
     req = urllib.request.Request(
         url, data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "BioDog/4.1"}, method="POST"
+        headers={"Content-Type": "application/json", "User-Agent": "BioDog/4.2"}, method="POST"
     )
     
     try:
@@ -189,7 +190,7 @@ def _call_gemini_api_video(api_key: str, full_prompt: str, video_bytes: bytes, m
     
     req = urllib.request.Request(
         url, data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "BioDog/4.1"}, method="POST"
+        headers={"Content-Type": "application/json", "User-Agent": "BioDog/4.2"}, method="POST"
     )
     
     try:
@@ -204,14 +205,15 @@ def _call_gemini_api_video(api_key: str, full_prompt: str, video_bytes: bytes, m
 # ==================== SCRITTURA SU SUPABASE ====================
 
 def _update_supabase_subscription(user_id: str, email: str, customer_id: str, sub_id: str, is_active: bool, plan_tier: str):
-    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+    auth_key = SUPABASE_SERVICE_KEY or "sb_publishable_zLclG7vV8MNdtYFDghH6cg_a7IBTe8E"
+    if not SUPABASE_URL or not auth_key:
         print("[BioDog] Credenziali Supabase mancanti.")
         return False
 
     url = f"{SUPABASE_URL}/rest/v1/user_subscriptions"
     headers = {
-        "apikey": SUPABASE_SERVICE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "apikey": auth_key,
+        "Authorization": f"Bearer {auth_key}",
         "Content-Type": "application/json",
         "Prefer": "resolution=merge-duplicates"
     }
@@ -230,7 +232,7 @@ def _update_supabase_subscription(user_id: str, email: str, customer_id: str, su
 
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            print(f"[BioDog] Supabase aggiornato per {email} (tier={plan_tier})")
+            print(f"[BioDog] Supabase aggiornato con successo per {email} (tier={plan_tier})")
             return resp.status in [200, 201]
     except Exception as e:
         print(f"[BioDog] Errore aggiornamento Supabase: {e}")
@@ -308,22 +310,46 @@ async def create_portal_session(req: PortalRequest):
 
 @app.post("/api/v1/stripe/webhook")
 async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Header(None)):
-    if not stripe or not STRIPE_WEBHOOK_SECRET: return {"status": "ignored"}
+    if not stripe or not STRIPE_WEBHOOK_SECRET:
+        print("[BioDog Webhook] Errore: libreria Stripe o STRIPE_WEBHOOK_SECRET non presenti.")
+        return {"status": "ignored"}
+        
     payload = await request.body()
+    
     try:
-        event = stripe.Webhook.construct_event(payload, stripe_signature, STRIPE_WEBHOOK_SECRET)
-    except Exception as e: raise HTTPException(status_code=400, detail=str(e))
+        # Verifica della firma crittografica con la chiave segreta Stripe
+        stripe.Webhook.construct_event(payload, stripe_signature, STRIPE_WEBHOOK_SECRET)
+    except Exception as e:
+        print(f"[BioDog Webhook] Errore verifica firma HMAC: {e}")
+        raise HTTPException(status_code=400, detail=f"Webhook signature verification failed: {str(e)}")
 
-    event_type = event.get("type", "")
-    data_obj = event.get("data", {}).get("object", {})
+    try:
+        # Decodifica JSON standard del payload verificato per evitare incompatibilità di versione dell'SDK
+        event_dict = json.loads(payload.decode("utf-8"))
+        event_type = event_dict.get("type", "")
+        data_obj = (event_dict.get("data") or {}).get("object") or {}
 
-    if event_type == "checkout.session.completed":
-        user_id = data_obj.get("client_reference_id") or (data_obj.get("metadata") or {}).get("user_id")
-        plan_tier = (data_obj.get("metadata") or {}).get("plan_tier", "premium")
-        email = data_obj.get("customer_details", {}).get("email") or data_obj.get("customer_email") or ""
-        customer_id = data_obj.get("customer", "")
-        sub_id = data_obj.get("subscription", "")
-        if user_id:
-            _update_supabase_subscription(user_id, email, customer_id, sub_id, True, plan_tier)
+        print(f"[BioDog Webhook] Evento verificato ricevuto: {event_type}")
 
-    return {"status": "success"}
+        if event_type == "checkout.session.completed":
+            metadata = data_obj.get("metadata") or {}
+            customer_details = data_obj.get("customer_details") or {}
+
+            user_id = data_obj.get("client_reference_id") or metadata.get("user_id")
+            plan_tier = metadata.get("plan_tier", "pro")
+            email = customer_details.get("email") or data_obj.get("customer_email") or ""
+            customer_id = data_obj.get("customer") or ""
+            sub_id = data_obj.get("subscription") or ""
+
+            print(f"[BioDog Webhook] checkout.session.completed rilevato: user_id={user_id}, email={email}, tier={plan_tier}")
+
+            if user_id:
+                _update_supabase_subscription(user_id, email, customer_id, sub_id, True, plan_tier)
+            else:
+                print("[BioDog Webhook] user_id non trovato nella sessione.")
+
+        return {"status": "success"}
+    except Exception as e:
+        traceback.print_exc()
+        print(f"[BioDog Webhook] Errore interno durante l'elaborazione dell'evento: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore interno webhook: {str(e)}")
