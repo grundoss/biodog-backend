@@ -69,6 +69,9 @@ def db(monkeypatch):
     monkeypatch.setattr(main, "_call_gemini_api", lambda key, prompt: (main._normalize_synthesis(SYNTH), None))
     monkeypatch.setattr(main, "_token_cache", {})
     monkeypatch.setattr(main, "_guest_hits", {})
+    monkeypatch.setattr(main, "_partner_hits", {})
+    monkeypatch.setattr(main, "_partner_fails", {})
+    monkeypatch.setattr(main, "PARTNER_PASSWORD", "Prova-Partner-1")
     fake.subs["u-pro"] = {"is_active": True, "plan_tier": "pro", "stripe_customer_id": "cus_pro", "stripe_subscription_id": "sub_pro"}
     return fake
 
@@ -460,3 +463,54 @@ def test_normalize_path():
     assert len(p["days"]) == 7 and [d["day"] for d in p["days"]] == list(range(1, 8))
     with pytest.raises(ValueError):
         main._normalize_path({**PATH, "days": PATH["days"][:5]})
+
+
+PARTNER = {"X-Partner-Key": "Prova-Partner-1"}
+
+
+def test_partner_verify_and_bruteforce(db, client):
+    assert client.post("/api/v1/partner/verify", json={"password": "Prova-Partner-1"}).json() == {"ok": True}
+    for _ in range(main.PARTNER_FAIL_LIMIT):
+        assert client.post("/api/v1/partner/verify", json={"password": "sbagliata"}).status_code == 401
+    r = client.post("/api/v1/partner/verify", json={"password": "Prova-Partner-1"})
+    assert r.status_code == 429 and r.json()["detail"]["code"] == "too_many_attempts"
+
+
+def test_partner_disabled_without_env(db, client, monkeypatch):
+    monkeypatch.setattr(main, "PARTNER_PASSWORD", "")
+    assert client.post("/api/v1/partner/verify", json={"password": "qualsiasi"}).status_code == 401
+    assert client.post("/api/v1/umwelt/transduce", json=BODY, headers={"X-Partner-Key": "qualsiasi"}).status_code == 401
+
+
+def test_partner_full_analysis_without_account(db, client, monkeypatch):
+    prompts = []
+    monkeypatch.setattr(main, "_call_gemini_api", lambda key, prompt: (prompts.append(prompt), (main._normalize_synthesis(SYNTH), None))[1])
+    for _ in range(3):  # nessun limite da ospite
+        r = client.post("/api/v1/umwelt/transduce", json={**BODY, "snout": "flat"}, headers=PARTNER)
+        assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["locked"] is False and data["neural_synthesis"]["steps"] == ["uno", "due"]
+    assert data["follow_up_token"] and "Cranio/Skull: flat" in prompts[-1]
+    assert db.usage == {}
+    fu = data["neural_synthesis"]["follow_up"]
+    r = client.post("/api/v1/umwelt/refine", headers=PARTNER, json={**BODY, "snout": "flat", "question": fu["question"],
+                    "options": fu["options"], "answer": fu["options"][0], "token": data["follow_up_token"]})
+    assert r.status_code == 200, r.text
+
+
+def test_partner_paths_and_video(db, client, monkeypatch):
+    r = client.post("/api/v1/paths", json={"user_text": "salta addosso"}, headers=PARTNER)
+    assert r.status_code == 200 and r.json()["path"]["id"] is None and db.paths == []
+    monkeypatch.setattr(main, "_call_gemini_api_video", lambda *a: (main._normalize_synthesis(SYNTH), None))
+    r = client.post("/api/v1/umwelt/transduce-video", files={"video": ("v.mp4", b"1234", "video/mp4")}, headers=PARTNER)
+    assert r.status_code == 200, r.text
+
+
+def test_partner_wrong_key_and_daily_limit(db, client, monkeypatch):
+    r = client.post("/api/v1/umwelt/transduce", json=BODY, headers={"X-Partner-Key": "sbagliata"})
+    assert r.status_code == 401 and r.json()["detail"]["code"] == "invalid_partner_key"
+    monkeypatch.setattr(main, "PARTNER_DAILY_LIMIT", 2)
+    assert client.post("/api/v1/umwelt/transduce", json=BODY, headers=PARTNER).status_code == 200
+    assert client.post("/api/v1/umwelt/transduce", json=BODY, headers=PARTNER).status_code == 200
+    r = client.post("/api/v1/umwelt/transduce", json=BODY, headers=PARTNER)
+    assert r.status_code == 429 and r.json()["detail"]["code"] == "partner_limit"

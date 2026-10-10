@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- File generato da build-css.mjs a partire da index.html: non modificarlo a mano. -->
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -8,8 +9,8 @@
     <!-- ==================== META TAG SEO ESSENZIALI ==================== -->
     <meta name="description" id="metaDescription" content="Entra nella mente del tuo cane. BioDog.io decodifica comportamenti, emozioni primarie e percezioni sensoriali (olfatto, vista, udito, tatto) su base scientifica.">
     <meta name="keywords" content="comportamento cane, dog behavior, dog translator, psicologia canina, etologia canina, c-barq test, affective neuroscience">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://biodog.io/">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://biodog.io/partner.html">
 
     <!-- ==================== ANTEPRIME SOCIAL ==================== -->
     <meta property="og:type" content="website">
@@ -23,7 +24,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 
     <!-- Umami Analytics (GDPR Cookieless) -->
-    <script defer src="https://cloud.umami.is/script.js" data-website-id="1ab332f7-ae52-4131-8caf-db27a357dfe4" data-exclude-hash="true"></script>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="1ab332f7-ae52-4131-8caf-db27a357dfe4" data-exclude-hash="true" data-tag="partner"></script>
 
     <!-- Tailwind & Font -->
     <!-- Tailwind compilato (frontend/build-css.mjs): niente CDN che genera gli stili sul telefono -->
@@ -2322,7 +2323,7 @@
         const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
         const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v"];
         // partner.html è generata da questo file con PARTNER_MODE = true (vedi build-css.mjs).
-        const PARTNER_MODE = false;
+        const PARTNER_MODE = true;
         const PARTNER_KEY_STORAGE = 'biodog_partner_key';
 
         let supabaseClient = null;

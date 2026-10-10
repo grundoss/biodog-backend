@@ -44,7 +44,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["Authorization", "Content-Type", "X-Guest-Id"],
+    allow_headers=["Authorization", "Content-Type", "X-Guest-Id", "X-Partner-Key"],
 )
 
 # ==================== VARIABILI D'AMBIENTE ====================
@@ -527,6 +527,51 @@ async def optional_user(authorization: Optional[str] = Header(None)) -> Optional
         raise api_error(401, "invalid_session", "Sessione scaduta: accedi di nuovo.")
     return user
 
+# ==================== DEMO PARTNER ====================
+# Pagina partner.html: tutte le funzioni senza account per educatori e partner.
+# La password sta solo su Render (PARTNER_PASSWORD); senza variabile la modalità è spenta.
+PARTNER_PASSWORD = os.getenv("PARTNER_PASSWORD", "").strip()
+PARTNER_DAILY_LIMIT = 100        # richieste di analisi al giorno per IP
+PARTNER_FAIL_LIMIT = 10          # password sbagliate per IP all'ora
+PARTNER_USER = {"id": "partner", "email": "", "dog_name": "", "partner": True}
+_partner_hits: dict = {}
+_partner_fails: dict = {}
+_partner_lock = threading.Lock()
+
+def _recent(store: dict, key: str, window: float) -> list:
+    cutoff = time.time() - window
+    hits = [t for t in store.get(key, []) if t > cutoff]
+    store[key] = hits
+    return hits
+
+def _check_partner_key(request: Request, key: str, count_use: bool) -> None:
+    ip = _client_ip(request)
+    with _partner_lock:
+        if len(_recent(_partner_fails, ip, 3600)) >= PARTNER_FAIL_LIMIT:
+            raise api_error(429, "too_many_attempts", "Troppi tentativi: riprova tra un'ora.")
+        valid = bool(PARTNER_PASSWORD) and hmac.compare_digest(key.encode(), PARTNER_PASSWORD.encode())
+        if not valid:
+            _partner_fails.setdefault(ip, []).append(time.time())
+            raise api_error(401, "invalid_partner_key", "Password non valida.")
+        if count_use:
+            if len(_recent(_partner_hits, ip, 24 * 3600)) >= PARTNER_DAILY_LIMIT:
+                raise api_error(429, "partner_limit", "Limite giornaliero della demo raggiunto: riprova domani.")
+            _partner_hits.setdefault(ip, []).append(time.time())
+
+async def partner_access(request: Request, x_partner_key: Optional[str] = Header(None)) -> bool:
+    if not x_partner_key:
+        return False
+    _check_partner_key(request, x_partner_key.strip(), count_use=True)
+    return True
+
+async def required_user_or_partner(user: Optional[dict] = Depends(optional_user),
+                                   partner: bool = Depends(partner_access)) -> dict:
+    if user:
+        return user
+    if partner:
+        return PARTNER_USER
+    raise api_error(401, "auth_required", "Accedi per usare questa funzione.")
+
 async def required_user(user: Optional[dict] = Depends(optional_user)) -> dict:
     if not user:
         raise api_error(401, "auth_required", "Accedi per usare questa funzione.")
@@ -775,6 +820,14 @@ def _analysis_prompt(req: "TransductionRequest", user: Optional[dict], extra: st
 async def root():
     return {"status": "BioDog Neural Engine Online", "model": ACTIVE_MODEL}
 
+class PartnerVerifyRequest(BaseModel):
+    password: str = Field(..., min_length=1, max_length=100)
+
+@app.post("/api/v1/partner/verify")
+async def partner_verify(req: PartnerVerifyRequest, request: Request):
+    _check_partner_key(request, req.password.strip(), count_use=False)
+    return {"ok": True}
+
 @app.get("/api/v1/me")
 async def me(user: dict = Depends(required_user)):
     try:
@@ -813,12 +866,18 @@ def _lang_directive(lang: Optional[str]) -> Tuple[str, str]:
     return target_lang, directive
 
 @app.post("/api/v1/umwelt/transduce")
-async def transduce(req: TransductionRequest, request: Request, user: Optional[dict] = Depends(optional_user)):
+async def transduce(req: TransductionRequest, request: Request, user: Optional[dict] = Depends(optional_user),
+                     partner: bool = Depends(partner_access)):
     snap = None
     bucket_key = None
     guest_keys = None
+    is_partner = partner and not user
 
-    if user:
+    if is_partner:
+        # Demo partner: tutto sbloccato, nessun contatore (c'è il tetto giornaliero per IP).
+        user = PARTNER_USER
+        tier = "pro"
+    elif user:
         try:
             snap = await asyncio.to_thread(_usage_snapshot, user["id"])
         except SupabaseError as e:
@@ -850,7 +909,9 @@ async def transduce(req: TransductionRequest, request: Request, user: Optional[d
         raise api_error(502, "engine_unavailable", "Il motore di analisi non risponde. Riprova tra poco: nessun credito è stato usato.")
 
     sunday_token_used = False
-    if user:
+    if is_partner:
+        usage = None
+    elif user:
         if bucket_key:
             try:
                 await asyncio.to_thread(_increment_usage, user["id"], snap["buckets"][bucket_key])
@@ -890,11 +951,15 @@ class PathRequest(BaseModel):
     lang: Optional[str] = "it"
 
 @app.post("/api/v1/paths")
-async def create_path(req: PathRequest, user: dict = Depends(required_user)):
+async def create_path(req: PathRequest, user: dict = Depends(required_user_or_partner)):
+    is_partner = user.get("partner", False)
     try:
-        sub = await asyncio.to_thread(_get_subscription, user["id"])
-        tier = _tier_from_subscription(sub)
-        used = 0 if tier != "free" else await asyncio.to_thread(_get_usage, user["id"], "path_trial")
+        if is_partner:
+            tier, used = "pro", 0
+        else:
+            sub = await asyncio.to_thread(_get_subscription, user["id"])
+            tier = _tier_from_subscription(sub)
+            used = 0 if tier != "free" else await asyncio.to_thread(_get_usage, user["id"], "path_trial")
     except SupabaseError as e:
         print(f"[BioDog] percorso quota: {e}")
         raise api_error(503, "service_unavailable", "Servizio temporaneamente non disponibile. Riprova tra poco.")
@@ -909,6 +974,10 @@ async def create_path(req: PathRequest, user: dict = Depends(required_user)):
     if not plan:
         print(f"[BioDog] Gemini percorso fallito: {api_err}")
         raise api_error(502, "engine_unavailable", "Non sono riuscito a creare il percorso. Riprova tra poco.")
+    if is_partner:
+        # In demo il percorso non viene salvato: vive solo nella pagina del partner.
+        return {"status": "success", "path": {"id": None, "situation": req.user_text, "plan": plan,
+                                              "completed": [], "created_at": None}}
     try:
         row = await asyncio.to_thread(_insert_path, user["id"], req.user_text, plan)
         if tier == "free":
@@ -926,7 +995,7 @@ class RefineRequest(TransductionRequest):
     token: str = Field(..., min_length=10, max_length=200)
 
 @app.post("/api/v1/umwelt/refine")
-async def refine(req: RefineRequest, user: dict = Depends(required_user)):
+async def refine(req: RefineRequest, user: dict = Depends(required_user_or_partner)):
     options = [o for o in req.options if isinstance(o, str)]
     if len(options) != len(req.options) or any(len(o) > 80 for o in options):
         raise api_error(400, "invalid_follow_up", "Domanda di approfondimento non valida.")
@@ -961,14 +1030,14 @@ async def transduce_video(
     video: UploadFile = File(...),
     user_text: str = Form("", max_length=500),
     lang: str = Form("it"),
-    user: dict = Depends(required_user),
+    user: dict = Depends(required_user_or_partner),
 ):
     try:
-        sub = await asyncio.to_thread(_get_subscription, user["id"])
+        sub = None if user.get("partner") else await asyncio.to_thread(_get_subscription, user["id"])
     except SupabaseError as e:
         print(f"[BioDog] video sub: {e}")
         raise api_error(503, "service_unavailable", "Servizio temporaneamente non disponibile. Riprova tra poco.")
-    if _tier_from_subscription(sub) != "pro":
+    if not user.get("partner") and _tier_from_subscription(sub) != "pro":
         raise api_error(402, "pro_required", "La video-analisi è inclusa in Vision PRO.")
 
     mime_type = (video.content_type or "").lower()
