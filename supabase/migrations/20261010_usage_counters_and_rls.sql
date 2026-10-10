@@ -55,3 +55,45 @@ create policy "read own subscription" on public.user_subscriptions
 
 create policy "read own usage" on public.usage_counters
     for select to authenticated using (auth.uid() = user_id);
+
+-- 4) Diario delle analisi e check-in dell'umore: sincronizzati tra dispositivi.
+--    Il browser legge e scrive solo le proprie righe.
+create table if not exists public.analyses (
+    id         bigint generated always as identity primary key,
+    user_id    uuid        not null default auth.uid() references auth.users(id) on delete cascade,
+    query      text        not null check (char_length(query) <= 600),
+    synth      jsonb       not null,
+    created_at timestamptz not null default now()
+);
+create index if not exists analyses_user_created_idx on public.analyses (user_id, created_at desc);
+
+create table if not exists public.mood_checkins (
+    user_id    uuid        not null default auth.uid() references auth.users(id) on delete cascade,
+    day        date        not null,
+    mood       text        not null check (mood in ('calm', 'reactive', 'anxious', 'hyper')),
+    updated_at timestamptz not null default now(),
+    primary key (user_id, day)
+);
+
+alter table public.analyses enable row level security;
+alter table public.mood_checkins enable row level security;
+
+do $$
+declare pol record;
+begin
+    for pol in
+        select policyname, tablename from pg_policies
+        where schemaname = 'public' and tablename in ('analyses', 'mood_checkins')
+    loop
+        execute format('drop policy %I on public.%I', pol.policyname, pol.tablename);
+    end loop;
+end $$;
+
+create policy "own analyses" on public.analyses
+    for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "own moods" on public.mood_checkins
+    for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+grant select, insert, delete on public.analyses to authenticated;
+grant select, insert, update, delete on public.mood_checkins to authenticated;

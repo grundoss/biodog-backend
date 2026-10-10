@@ -4,23 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="pageTitle">BioDog.io | Traduttore Etologico e Psicologia Canina</title>
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1397106102636268');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
     
     <!-- ==================== META TAG SEO ESSENZIALI ==================== -->
     <meta name="description" id="metaDescription" content="Entra nella mente del tuo cane. BioDog.io decodifica comportamenti, emozioni primarie e percezioni sensoriali (olfatto, vista, udito, tatto) su base scientifica.">
@@ -37,7 +20,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
     <meta property="og:locale" content="it_IT">
 
     <!-- Supabase JS Client v2 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 
     <!-- Umami Analytics (GDPR Cookieless) -->
     <script defer src="https://cloud.umami.is/script.js" data-website-id="1ab332f7-ae52-4131-8caf-db27a357dfe4"></script>
@@ -284,22 +267,9 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 <span id="txtTrust1Sub">DogFACS & Neuroscienze</span>
             </div>
             <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-200/80 shadow-xs">
-                <span class="text-purple-600 font-extrabold" id="txtTrust2Title">🔬 100% Biologia</span>
+                <span class="text-purple-600 font-extrabold" id="txtTrust2Title">🔬 Base Biologica</span>
                 <span id="txtTrust2Sub">7 Circuiti di Panksepp</span>
             </div>
-            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-200/80 shadow-xs">
-                <span class="text-amber-500 font-extrabold">⭐ 4.9/5</span>
-                <span id="txtTrust3Sub">valutato da proprietari ed educatori</span>
-            </div>
-        </div>
-
-        <!-- ==================== SEGNALE DI ATTIVITÀ DINAMICO ==================== -->
-        <div class="mb-4 flex items-center justify-center gap-2 text-[10px] sm:text-[11px] text-slate-500 font-medium text-center">
-            <span class="relative flex h-2 w-2 shrink-0">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span id="txtLiveCounterWrap">Oltre <strong id="liveUserCounter" class="text-slate-700 font-extrabold transition-all duration-500">38 proprietari</strong> stanno consultando BioDog in questo momento</span>
         </div>
 
         <!-- ==================== BARRA DI RICERCA OTTIMIZZATA MOBILE (LEGGE DI FITTS) ==================== -->
@@ -351,7 +321,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
 
             <!-- Microcopy Rassicurante -->
             <p id="txtMicrocopySearch" class="text-[11px] text-slate-500 font-medium mt-2 text-center flex items-center justify-center gap-2">
-                <span>🔒 100% Oggettivo ed Etologico</span>
+                <span>🔒 Nessuna colpevolizzazione</span>
                 <span>•</span>
                 <span>✨ Nessuna carta richiesta per le 2 prove</span>
             </p>
@@ -379,10 +349,17 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     Mappatura sensoriale e circuiti di Panksepp in corso 🧠🐾
                 </p>
             </div>
-            <p id="loadingIndicatorSub" class="text-[11px] text-slate-400 font-medium">Richiede circa 2-4 secondi. Stiamo decodificando l'Umwelt del cane.</p>
+            <p id="loadingIndicatorSub" class="text-[11px] text-slate-400 font-medium">Di solito pochi secondi (al primo avvio può servire fino a un minuto).</p>
         </div>
 
-        <!-- ==================== LEAD MAGNET: TEST C-BARQ EXPRESS ==================== -->
+        <!-- ==================== MESSAGGIO DI ERRORE ==================== -->
+        <div id="errorBox" role="alert" class="hidden w-full max-w-xl my-3 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs sm:text-sm text-rose-900 font-semibold flex items-start gap-2.5 fade-in mx-auto">
+            <i class="fa-solid fa-circle-exclamation text-rose-500 mt-0.5"></i>
+            <span id="errorBoxText" class="flex-grow"></span>
+            <button type="button" onclick="hideError()" class="text-rose-400 hover:text-rose-700" aria-label="Chiudi"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- ==================== LEAD MAGNET: TEST COMPORTAMENTALE EXPRESS ==================== -->
         <div id="cbarqWidgetContainer" class="w-full max-w-3xl mb-4 bg-white rounded-3xl border border-purple-200 shadow-sm overflow-hidden transition-all">
             <div class="p-3.5 sm:p-4 bg-gradient-to-r from-purple-50 via-indigo-50/60 to-purple-50/40 border-b border-purple-100 flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
@@ -391,11 +368,11 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs sm:text-sm font-black text-purple-950 font-heading" id="txtCbarqTitle">Test C-BARQ Express (45s)</span>
-                            <span class="bg-purple-200/80 text-purple-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider" id="txtCbarqClinicalTag">Clinico</span>
+                            <span class="text-xs sm:text-sm font-black text-purple-950 font-heading" id="txtCbarqTitle">Test Comportamentale Express (45s)</span>
+                            <span class="bg-purple-200/80 text-purple-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider" id="txtCbarqClinicalTag">Ispirato al C-BARQ</span>
                         </div>
                         <p class="text-[10px] sm:text-[11px] text-purple-700 font-medium leading-tight" id="txtCbarqSubtitle">
-                            Mappa le 4 vulnerabilità emotive del tuo cane secondo il modello scientifico C-BARQ.
+                            4 domande ispirate al questionario C-BARQ: un'indicazione orientativa, non una valutazione clinica.
                         </p>
                     </div>
                 </div>
@@ -475,7 +452,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                             <strong id="cbarqScoreTouch" class="font-mono text-rose-700 text-sm">45%</strong>
                         </div>
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                            <span class="text-[9px] text-slate-400 uppercase font-black block" id="txtScoreImpulse">Controllo Impulsi</span>
+                            <span class="text-[9px] text-slate-400 uppercase font-black block" id="txtScoreImpulse">Eccitabilità</span>
                             <strong id="cbarqScoreImpulse" class="font-mono text-emerald-700 text-sm">38%</strong>
                         </div>
                     </div>
@@ -483,7 +460,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     <div class="relative rounded-2xl overflow-hidden border border-slate-200 p-4 bg-slate-50/70">
                         <div id="cbarqProtocolContent" class="space-y-2.5 blur-content">
                             <strong class="text-xs font-black text-slate-800 uppercase tracking-wide block" id="txtCbarqProtocolHeader">
-                                <i class="fa-solid fa-list-check text-purple-600 mr-1.5"></i> Protocollo di De-escalation Personalizzato:
+                                <i class="fa-solid fa-list-check text-purple-600 mr-1.5"></i> Consigli per il tuo profilo:
                             </strong>
                             <p id="cbarqProtocolText" class="text-xs text-slate-600 leading-relaxed font-medium">
                                 1. Adotta l'avvicinamento curvo (Curving) a 45°.<br>2. Mantieni il guinzaglio morbido.<br>3. Rispetta lo spazio vitale di decompressione.
@@ -495,10 +472,10 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                                 <i class="fa-solid fa-lock"></i>
                             </div>
                             <strong class="text-xs sm:text-sm font-black font-heading mb-1" id="txtLockOverlayTitle">
-                                Crea il Diario Clinico del tuo cane
+                                Crea il Diario del tuo cane
                             </strong>
                             <p class="text-[11px] text-slate-300 font-medium max-w-sm mb-3 leading-relaxed" id="txtLockOverlaySub">
-                                100% Gratis • Nessuna Carta • Sblocca il referto e ricevi <strong>2 Traduzioni Complete Gratuite</strong>.
+                                Gratis • Nessuna carta • Sblocca i consigli e ricevi <strong>2 Traduzioni Complete Gratuite</strong>.
                             </p>
                             
                             <div class="w-full max-w-xs space-y-2">
@@ -511,7 +488,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                                     </svg>
                                     <span id="txtBtnUnlockGoogle">Sblocca Gratis con Google (1 Clic)</span>
                                 </button>
-                                <button onclick="openAuthModal(false, 'Inserisci la tua email per accedere senza password!')" class="text-[11px] text-slate-400 hover:text-white underline" id="txtBtnUnlockEmail">
+                                <button onclick="openAuthModalEmail()" class="text-[11px] text-slate-400 hover:text-white underline" id="txtBtnUnlockEmail">
                                     Oppure ricevi Magic Link via Email
                                 </button>
                             </div>
@@ -793,18 +770,6 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 </span>
             </div>
 
-            <div id="resCbarqBadge" class="hidden bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/90 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
-                <div class="flex items-center gap-2.5">
-                    <span class="text-base">📋</span>
-                    <div>
-                        <strong class="text-xs text-indigo-950 font-bold font-heading block" id="txtResCbarqBadgeTitle">Matrice Emotiva C-BARQ Integrata</strong>
-                        <span id="resCbarqDescription" class="text-[11px] text-indigo-700 font-medium">Reattività 78% • Ansia 62%</span>
-                    </div>
-                </div>
-                <span class="text-[9px] font-mono font-bold bg-white text-indigo-800 px-2.5 py-0.5 rounded-full border border-indigo-200 w-fit" id="txtResCbarqProTag">
-                    Iper-Personalizzazione Attiva
-                </span>
-            </div>
 
             <!-- 1. TERMOMETRO EMOTIVO -->
             <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -842,9 +807,8 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
             <div class="bg-slate-50 p-5 sm:p-6 rounded-3xl border border-slate-200/80 space-y-3">
                 <div class="flex items-center justify-between">
                     <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2" id="txtSensoryThermometerHeader">
-                        <i class="fa-solid fa-chart-simple text-emerald-600"></i> Termometro Sensoriale Biologico (Umwelt)
+                        <i class="fa-solid fa-chart-simple text-emerald-600"></i> I 4 Canali Sensoriali (Umwelt)
                     </h4>
-                    <span class="text-[10px] font-mono text-slate-400 bg-white px-2.5 py-0.5 rounded-full border border-slate-200" id="txtSensoryIntensityTag">Intensità Canali %</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -852,10 +816,6 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-bold text-amber-700 flex items-center gap-1.5"><span class="text-base">👃</span> <span id="txtChSmellTitle">Olfatto Chimico</span></span>
-                            <span id="resSmellIntensity" class="text-[10px] font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">92% Dominante</span>
-                        </div>
-                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div id="resSmellBar" class="h-full bg-amber-500 rounded-full transition-all duration-700" style="width: 92%"></div>
                         </div>
                         <p id="resSmell" class="text-xs text-slate-600 leading-relaxed font-medium pt-0.5">-</p>
                     </div>
@@ -864,10 +824,6 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-bold text-blue-700 flex items-center gap-1.5"><span class="text-base">👀</span> <span id="txtChSightTitle">Vista da Terra</span></span>
-                            <span id="resSightIntensity" class="text-[10px] font-mono font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">65% Prospettica</span>
-                        </div>
-                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div id="resSightBar" class="h-full bg-blue-500 rounded-full transition-all duration-700" style="width: 65%"></div>
                         </div>
                         <p id="resSight" class="text-xs text-slate-600 leading-relaxed font-medium pt-0.5">-</p>
                     </div>
@@ -876,10 +832,6 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-bold text-purple-700 flex items-center gap-1.5"><span class="text-base">👂</span> <span id="txtChHearingTitle">Udito & Prosodia</span></span>
-                            <span id="resHearingIntensity" class="text-[10px] font-mono font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">78% Allerta</span>
-                        </div>
-                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div id="resHearingBar" class="h-full bg-purple-500 rounded-full transition-all duration-700" style="width: 78%"></div>
                         </div>
                         <p id="resHearing" class="text-xs text-slate-600 leading-relaxed font-medium pt-0.5">-</p>
                     </div>
@@ -888,10 +840,6 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-bold text-rose-700 flex items-center gap-1.5"><span class="text-base">🤚</span> <span id="txtChTouchTitle">Tatto & Prossemica</span></span>
-                            <span id="resTouchIntensity" class="text-[10px] font-mono font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">Hediger Spazio</span>
-                        </div>
-                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div id="resTouchBar" class="h-full bg-rose-500 rounded-full transition-all duration-700" style="width: 80%"></div>
                         </div>
                         <p id="resTouch" class="text-xs text-slate-600 leading-relaxed font-medium pt-0.5">-</p>
                     </div>
@@ -961,7 +909,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                         <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mb-3 shadow-inner">
                             <i class="fa-solid fa-lock"></i>
                         </div>
-                        <span class="font-black text-lg sm:text-xl mb-1.5 font-heading tracking-wide" id="txtBlurCardTitle">Crea il Diario Clinico del tuo cane</span>
+                        <span class="font-black text-lg sm:text-xl mb-1.5 font-heading tracking-wide" id="txtBlurCardTitle">Crea il Diario del tuo cane</span>
                         <p class="text-xs text-slate-300 font-medium mb-4 leading-relaxed" id="txtBlurCardSub">
                             100% Gratis • Nessuna carta di credito richiesta. Sblocca in 1 clic la guida pratica, la postura corporea esatta e 2 Traduzioni Complete.
                         </p>
@@ -977,7 +925,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                                 <span id="txtBtnBlurGoogle">Sblocca Gratis con Google (1 Clic)</span>
                             </button>
 
-                            <button onclick="openAuthModal(false, 'Ricevi il link di accesso rapido via email!')" class="text-[11px] text-slate-400 hover:text-white underline transition" id="txtBtnBlurEmail">
+                            <button onclick="openAuthModalEmail()" class="text-[11px] text-slate-400 hover:text-white underline transition" id="txtBtnBlurEmail">
                                 Oppure accedi via Email senza password ✨
                             </button>
                         </div>
@@ -1001,7 +949,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                         </button>
                     </div>
                     <span id="feedbackThanksMsg" class="hidden text-emerald-800 font-bold text-[11px] bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl fade-in flex items-center gap-1.5">
-                        <i class="fa-solid fa-circle-check text-emerald-600"></i> <span id="txtFeedbackThanks">Grazie! Calibrazione registrata.</span>
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i> <span id="txtFeedbackThanks">Grazie per il feedback!</span>
                     </span>
                 </div>
 
@@ -1013,7 +961,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
 
                     <button onclick="copyCurrentAnalysis()" id="btnCopyAnalysis" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
                         <i class="fa-solid fa-share-nodes text-slate-500"></i>
-                        <span id="btnCopyAnalysisText">Copia referto</span>
+                        <span id="btnCopyAnalysisText">Copia analisi</span>
                     </button>
                 </div>
             </div>
@@ -1025,10 +973,10 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
             <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs">
                 <div class="text-center mb-5">
                     <span class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200" id="txtAuthorityPill">
-                        Ingegneria della Fiducia & Rigore Scientifico
+                        Basi Scientifiche
                     </span>
                     <h3 class="text-base sm:text-lg font-black text-slate-800 font-heading mt-2" id="txtAuthorityTitle">
-                        Perché le risposte di BioDog sono affidabili al 100%
+                        Su cosa si basano le risposte di BioDog
                     </h3>
                 </div>
 
@@ -1053,16 +1001,16 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                         <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-sm mb-2 shadow-xs">
                             <i class="fa-solid fa-shield-halved"></i>
                         </div>
-                        <strong class="text-xs text-slate-800 font-bold block mb-0.5" id="txtAuth3Title">GDPR Compliant</strong>
-                        <span class="text-[10px] text-slate-500 font-medium" id="txtAuth3Sub">Zero Cookie e privacy</span>
+                        <strong class="text-xs text-slate-800 font-bold block mb-0.5" id="txtAuth3Title">Privacy</strong>
+                        <span class="text-[10px] text-slate-500 font-medium" id="txtAuth3Sub">Cookie di marketing solo con consenso</span>
                     </div>
 
                     <div class="p-3 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex flex-col items-center">
                         <div class="w-9 h-9 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center text-sm mb-2 shadow-xs">
                             <i class="fa-brands fa-stripe text-base"></i>
                         </div>
-                        <strong class="text-xs text-slate-800 font-bold block mb-0.5" id="txtAuth4Title">Stripe Verified</strong>
-                        <span class="text-[10px] text-slate-500 font-medium" id="txtAuth4Sub">Transazioni protette 256-bit</span>
+                        <strong class="text-xs text-slate-800 font-bold block mb-0.5" id="txtAuth4Title">Pagamenti Stripe</strong>
+                        <span class="text-[10px] text-slate-500 font-medium" id="txtAuth4Sub">Checkout cifrato, disdici quando vuoi</span>
                     </div>
                 </div>
             </div>
@@ -1125,7 +1073,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     <img src="1246.png" alt="BioDog Logo" class="w-full h-auto drop-shadow-xs">
                 </div>
                 <h3 id="authModalTitle" class="text-lg sm:text-xl font-black text-slate-800 font-heading">Accedi a BioDog</h3>
-                <p class="text-[11px] text-slate-500 font-medium" id="txtAuthModalSub">Unisciti a oltre 5.000 proprietari ed educatori cinofili</p>
+                <p class="text-[11px] text-slate-500 font-medium" id="txtAuthModalSub">Crea il tuo account gratuito in pochi secondi</p>
             </div>
 
             <div class="bg-emerald-50/80 border border-emerald-200/90 rounded-2xl p-2.5 text-[11px] text-emerald-950 font-medium space-y-1">
@@ -1243,6 +1191,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                             <ul class="space-y-2 text-xs text-slate-700 font-medium mb-5" id="listPerksStandard">
                                 <li>• Analisi Testuali Illimitate</li>
                                 <li>• Decodifica 4 Sensi Umwelt</li>
+                                <li>• Guida posturale e tono di voce</li>
                                 <li>• Diario Etologico sincronizzato</li>
                             </ul>
                         </div>
@@ -1254,7 +1203,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                     <!-- 3. Vision PRO 3,99 -->
                     <div class="bg-gradient-to-b from-emerald-50/90 via-emerald-50/40 to-white rounded-2xl border-2 border-emerald-500 p-4 sm:p-5 flex flex-col justify-between relative shadow-lg transform md:-translate-y-1">
                         <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider shadow-sm whitespace-nowrap" id="txtProBannerTop">
-                            ⭐ SCELTO DA 9 PROPRIETARI SU 10
+                            ⭐ IL PIÙ COMPLETO
                         </div>
                         <div>
                             <div class="flex items-center justify-between gap-1 mb-2 pt-1">
@@ -1270,7 +1219,7 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                                 <li>• <strong>Video-Analisi (Live & Galleria)</strong></li>
                                 <li>• <strong>Configuratore Razza con Preset</strong></li>
                                 <li>• Decodifica 4 Canali Biometrica</li>
-                                <li>• Diario Clinico Illimitato</li>
+                                <li>• Diario Etologico sincronizzato</li>
                             </ul>
                         </div>
                         <button onclick="startStripeCheckout('pro')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl transition text-xs sm:text-sm shadow-md" id="txtBtnPlanPro">
@@ -1360,10 +1309,21 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
         </div>
     </div>
 
+    <!-- ==================== CONSENSO COOKIE ==================== -->
+    <div id="cookieBanner" class="hidden fixed bottom-0 inset-x-0 z-[60] p-3 sm:p-4">
+        <div class="max-w-3xl mx-auto bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 text-xs text-slate-600">
+            <p class="flex-grow leading-relaxed" id="txtCookieBanner">Usiamo un cookie di marketing (Meta Pixel) per misurare le campagne pubblicitarie, solo se acconsenti. Le statistiche di base (Umami) non usano cookie.</p>
+            <div class="flex gap-2 shrink-0">
+                <button type="button" onclick="setCookieConsent(false)" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 font-bold text-slate-700" id="txtCookieReject">Rifiuta</button>
+                <button type="button" onclick="setCookieConsent(true)" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold" id="txtCookieAccept">Accetta</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== FOOTER ==================== -->
     <footer class="w-full mt-auto py-6 border-t border-slate-200/80 bg-white/50 text-center text-xs text-slate-500 space-y-1">
         <p><span id="txtFooterSupport">Hai domande o suggerimenti? Scrivici a</span> <a href="mailto:info@biodog.io" class="text-emerald-600 font-bold hover:underline">info@biodog.io</a></p>
-        <p class="text-[11px] text-slate-400">© 2026 BioDog.io • Computational Ethological Engine. All rights reserved.</p>
+        <p class="text-[11px] text-slate-400">© 2026 BioDog.io • Computational Ethological Engine. All rights reserved. • <button type="button" onclick="openCookieBanner()" class="underline hover:text-slate-600" id="txtCookiePrefs">Preferenze cookie</button></p>
     </footer>
 
     <!-- ==================== LOGICA JAVASCRIPT BILINGUE ==================== -->
@@ -1374,26 +1334,28 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 pageTitle: "BioDog.io | Traduttore Etologico e Psicologia Canina",
                 metaDesc: "Entra nella mente del tuo cane. BioDog.io decodifica comportamenti, emozioni primarie e percezioni sensoriali su base scientifica.",
                 inAppAlert: '💡 Consiglio: Tocca i 3 puntini in alto a destra e scegli <strong>"Apri in Chrome / Safari"</strong> per salvare i progressi!',
-                stripeSuccess: "Complimenti! Il tuo abbonamento a <strong>BioDog</strong> è attivo.",
+                stripeSuccess: "Pagamento ricevuto! Stiamo attivando il tuo abbonamento a <strong>BioDog</strong>…",
+                stripeActive: "Complimenti! Il tuo abbonamento a <strong>BioDog</strong> è attivo.",
+                stripePending: "Pagamento ricevuto. L'attivazione può richiedere qualche minuto: ricarica la pagina tra poco.",
                 loginBtn: "Accedi / Registrati",
                 diaryHeader: "Diario",
                 manageSub: "Abbonamento",
                 upgradeBtnHeader: "Piani PRO",
                 welcomeBtn: "Cos'è BioDog?",
-                trialBadge: "Fai subito le tue <strong>2 Traduzioni di Prova Gratuite</strong>!",
-                trialBadgeLoggedIn: "Hai <strong>2 Traduzioni Complete Gratuite</strong> incluse nel tuo account!",
+                trialBadge: "Registrati gratis e ricevi <strong>2 Traduzioni Complete</strong>!",
+                trialRemaining: n => n === 1 ? "Ti resta <strong>1 traduzione gratuita</strong>" : `Ti restano <strong>${n} traduzioni gratuite</strong>`,
+                trialSunday: "Oggi è domenica: hai <strong>1 consulto omaggio</strong>!",
+                trialExhausted: "Prove gratuite esaurite • ogni domenica hai <strong>1 consulto omaggio</strong>",
+                premiumRemaining: n => `Ti restano <strong>${n} analisi</strong> questo mese`,
                 heroTitle: "Entra nella mente del tuo cane.",
                 heroSubtitle: "Smetti di indovinare cosa prova quando ha paura, ringhia o ti salta addosso. BioDog traduce le sue emozioni su base biologica, senza colpevolizzazioni umane, per darti subito la risposta corretta.",
                 trust1Title: "🐕 Algoritmo Etologico",
                 trust1Sub: "DogFACS & Neuroscienze",
-                trust2Title: "🔬 100% Biologia",
+                trust2Title: "🔬 Base Biologica",
                 trust2Sub: "7 Circuiti di Panksepp",
-                trust3Sub: "valutato da proprietari ed educatori",
-                liveCounterWrap: "Oltre <strong id='liveUserCounter' class='text-slate-700 font-extrabold'>38 proprietari</strong> stanno consultando BioDog in questo momento",
                 queryPlaceholder: "Descrivi cosa fa o registra un video...",
                 btnTranslate: "Scopri cosa prova ora 🐾",
-                btnTranslating: "Sto elaborando...",
-                microcopySearch: "<span>🔒 100% Oggettivo ed Etologico</span><span>•</span><span>✨ Nessuna carta richiesta per le 2 prove</span>",
+                microcopySearch: "<span>🔒 Nessuna colpevolizzazione</span><span>•</span><span>✨ Nessuna carta richiesta per le prove</span>",
                 quickCasesLabel: "Casi Frequenti:",
                 quickCases: [
                     "Quando torno a casa mi salta addosso e fa le feste",
@@ -1403,23 +1365,28 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 quickChipsLabels: ["🐾 Salta al rientro", "🏃 Scappa se slegato", "🦴 Ringhia al cibo"],
                 loadingTitle: "BioDog sta elaborando il comportamento...",
                 loadingText: "Mappatura sensoriale e circuiti di Panksepp in corso 🧠🐾",
-                loadingSub: "Richiede circa 2-4 secondi. Stiamo decodificando l'Umwelt del cane.",
-                cbarqTitle: "Test C-BARQ Express (45s)",
-                cbarqClinicalTag: "Clinico",
-                cbarqSubtitle: "Mappa le 4 vulnerabilità emotive del tuo cane secondo il modello scientifico C-BARQ.",
-                cbarqProgressLabel: "Avanzamento Profilazione:",
-                cbarqComputing: "Elaborazione Matrice C-BARQ in corso...",
+                loadingSub: "Di solito pochi secondi (al primo avvio può servire fino a un minuto).",
+                loadingVideoTitle: "BioDog sta analizzando il video...",
+                cbarqTitle: "Test Comportamentale Express (45s)",
+                cbarqClinicalTag: "Ispirato al C-BARQ",
+                cbarqSubtitle: "4 domande ispirate al questionario C-BARQ: un'indicazione orientativa, non una valutazione clinica.",
+                cbarqProgressLabel: "Avanzamento:",
+                cbarqQuestion: (i, n) => `Domanda ${i} / ${n}`,
+                cbarqCompleted: "completato",
+                cbarqDone: "Completato",
+                cbarqComputing: "Elaborazione del profilo in corso...",
                 cbarqComputingSub: "Incrocio dei 4 assi comportamentali con i circuiti neuroaffettivi di Panksepp.",
-                cbarqReportLabel: "Esito Profilazione C-BARQ:",
+                cbarqReportLabel: "Profilo orientativo:",
                 btnPinCbarq: "Salva nel Diario",
+                btnPinCbarqDone: "Salvato!",
                 btnRestartCbarq: "Ripeti Test",
                 scoreReactivity: "Reattività Sociale",
                 scoreAnxiety: "Ansia Separazione",
                 scoreTouch: "Sensibilità Tatto",
-                scoreImpulse: "Controllo Impulsi",
-                cbarqProtocolHeader: "Protocollo di De-escalation Personalizzato:",
-                lockOverlayTitle: "Crea il Diario Clinico del tuo cane",
-                lockOverlaySub: "100% Gratis • Nessuna Carta • Sblocca il referto e ricevi <strong>2 Traduzioni Complete Gratuite</strong>.",
+                scoreImpulse: "Eccitabilità",
+                cbarqProtocolHeader: "Consigli per il tuo profilo:",
+                lockOverlayTitle: "Crea il Diario del tuo cane",
+                lockOverlaySub: "Gratis • Nessuna carta • Sblocca i consigli e ricevi <strong>2 Traduzioni Complete Gratuite</strong>.",
                 btnUnlockGoogle: "Sblocca Gratis con Google (1 Clic)",
                 btnUnlockEmail: "Oppure ricevi Magic Link via Email",
                 dailyMoodTitle: "Check-in Emotivo Quotidiano",
@@ -1434,31 +1401,47 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 moodAnxiousDesc: "Attaccamento eccessivo, pianto, irrequietezza continua.",
                 moodHyperTitle: "Iper / Euforico",
                 moodHyperDesc: "Salto addosso, scariche motorie, difficoltà a fermarsi.",
+                moodSaved: "Umore registrato per oggi! 🔥",
+                moodUpdated: "Umore di oggi aggiornato.",
+                moodSaveError: "Impossibile salvare il check-in. Riprova tra poco.",
                 zeroCreditsTag: "0 Crediti Consumati",
                 weeklyHeatmapLabel: "Andamento Ultimi 7 Giorni:",
+                weekdaysShort: ["D", "L", "M", "M", "G", "V", "S"],
                 morphHeading: "Profilo Morfologico del Cane",
                 morphActionUnlock: "Sblocca con PRO",
                 morphActionConfig: "Configura Profilo",
-                presetHeader: "⚡ Preset Rapidi di Razza (1 Clic)",
+                morphProActive: "PRO ATTIVO",
+                presetHeader: "Preset Rapidi di Razza (1 Clic)",
                 presetSub: "Configura istantaneamente i 4 parametri",
                 labelSnout: "Cranio (Olfatto)",
                 labelEars: "Orecchie (Udito)",
                 labelSize: "Taglia (Occhi da Terra)",
                 labelTail: "Coda (Postura Visiva)",
                 sensoryActiveLabel: "Calcolo Sensoriale Attivo:",
+                morphNames: {
+                    snout: { flat: "Brachicefalo", normal: "Mesocefalo", long: "Dolicocefalo" },
+                    ears: { prick: "Orecchie Ritte", drop: "Orecchie Pendenti" },
+                    size: { small: "Taglia Piccola", medium: "Taglia Media", large: "Taglia Grande" },
+                    tail: { long: "Coda Lunga", curled: "Coda Riccia", short: "Coda Corta" }
+                },
+                earStats: { prick: "Mobilità 180°", drop: "Ascolto frontale" },
+                tailStats: { long: "Comunicazione piena", curled: "Segnali ridotti", short: "Segnali limitati" },
+                heightLabel: "Altezza",
+                smellUnit: "olfatto",
+                fovUnit: "visuale",
+                heightUnit: "altezza",
                 saveToast: "Traduzione salvata nel tuo Diario Etologico!",
-                unlockToast: "Guida pratica sbloccata! Aggiunta al tuo Diario.",
-                sundayToast: "Hai appena usato il tuo Gettone OMAGGIO della Domenica!",
+                sundayToast: "Hai appena usato il tuo <strong>Gettone OMAGGIO della Domenica!</strong>",
                 resMorphBadgeTitle: "Analisi Calibrata sul Profilo Morfologico PRO",
                 resMorphProTag: "Calcolo Biometrico PRO",
-                resCbarqBadgeTitle: "Matrice Emotiva C-BARQ Integrata",
-                resCbarqProTag: "Iper-Personalizzazione Attiva",
                 resPankseppHeader: "Stato Neuroaffettivo (Panksepp):",
                 valencePrefix: "Valenza:",
+                valencePleasant: v => `Esperienza Piacevole (+${v})`,
+                valenceDistress: v => `Disagio / Tensione (${v})`,
+                valenceNeutral: v => `Stato Neutro (${v})`,
                 resArousalLabel: "Agitazione Motoria (Arousal):",
                 resThoughtHeader: "Nella mente del cane in questo istante:",
-                sensoryThermometerHeader: "Termometro Sensoriale Biologico (Umwelt)",
-                sensoryIntensityTag: "Intensità Canali %",
+                sensoryThermometerHeader: "I 4 Canali Sensoriali (Umwelt)",
                 chSmellTitle: "Olfatto Chimico",
                 chSightTitle: "Vista da Terra",
                 chHearingTitle: "Udito & Prosodia",
@@ -1469,79 +1452,131 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 resExplanationHeader: "Perché si comporta così?",
                 resStepsHeader: "Cosa fare adesso:",
                 resForbiddenHeader: "Errori da evitare:",
-                blurCardTitle: "Crea il Diario Clinico del tuo cane",
-                blurCardSub: "100% Gratis • Nessuna carta richiesta. Sblocca in 1 clic la guida pratica, la postura esatta e 2 Traduzioni Complete.",
+                lockedPlaceholder: "Contenuto disponibile dopo la registrazione gratuita.",
+                blurCardTitle: "Crea il Diario del tuo cane",
+                blurCardSub: "Gratis • Nessuna carta di credito richiesta. Sblocca la guida pratica, la postura corporea e 2 Traduzioni Complete.",
                 btnBlurGoogle: "Sblocca Gratis con Google (1 Clic)",
                 btnBlurEmail: "Oppure accedi via Email senza password ✨",
+                blurEmailPrompt: "Ricevi il link di accesso rapido via email!",
                 feedbackPrompt: "Questa decodifica è accurata?",
                 feedbackYes: "Sì, rispecchia",
                 feedbackNo: "Migliorabile",
-                feedbackThanks: "Grazie! Calibrazione registrata.",
+                feedbackThanks: "Grazie per il feedback!",
                 btnWhatsApp: "Invia su WhatsApp",
-                btnCopyAnalysisText: "Copia referto",
+                btnCopyAnalysisText: "Copia analisi",
                 copiedToast: "Copiato! ✓",
-                authorityPill: "Ingegneria della Fiducia & Rigore Scientifico",
-                authorityTitle: "Perché le risposte di BioDog sono affidabili al 100%",
+                authorityPill: "Basi Scientifiche",
+                authorityTitle: "Su cosa si basano le risposte di BioDog",
                 auth1Title: "Neurobiologia",
                 auth1Sub: "7 Circuiti di Jaak Panksepp",
                 auth2Title: "Etologia Cognitiva",
                 auth2Sub: "Umwelt e Distanze Hediger",
-                auth3Title: "GDPR Compliant",
-                auth3Sub: "Zero Cookie e privacy",
-                authority4Title: "Stripe Verified",
-                auth4Sub: "Transazioni protette 256-bit",
+                auth3Title: "Privacy",
+                auth3Sub: "Cookie di marketing solo con consenso",
+                auth4Title: "Pagamenti Stripe",
+                auth4Sub: "Checkout cifrato, disdici quando vuoi",
                 disclaimerTitle: "Disclaimer Etologico e Avvertenze Legali:",
                 disclaimerBody: "Le analisi e le decodifiche fornite da BioDog.io sono generate da algoritmi di Intelligenza Artificiale basati su modelli etologici, neurobiologici e cognitivi (circuiti di Jaak Panksepp, Umwelt sensoriale, distanze di sicurezza di Hediger). Tali elaborazioni hanno finalità esclusivamente divulgative, educative e di supporto alla comprensione del cane e non costituiscono in alcun modo diagnosi clinica veterinaria, parere medico o terapia comportamentale. In caso di aggressività manifesta, fobie acute, segnali di dolore fisico o alterazioni comportamentali repentine, si raccomanda di consultare tempestivamente un Medico Veterinario Esperto in Comportamento (MVEC) o un Istruttore Cinofilo qualificato. L'utente resta l'unico e diretto responsabile delle interazioni e delle decisioni adottate nella gestione del proprio cane.",
                 guestModalBadge: "🎁 2 Traduzioni Gratuite Incluse",
                 guestModalTitle: "Inizia subito gratis con il testo!",
-                guestModalSub: "La Video-Analisi con Visione Artificiale è riservata al piano Vision PRO, ma hai a disposizione 2 Traduzioni Testuali Gratuite per testare l'algoritmo!",
+                guestModalSub: "La Video-Analisi con Visione Artificiale è riservata al piano <strong>Vision PRO</strong>, ma registrandoti hai <strong>2 Traduzioni Testuali Gratuite</strong> per provare BioDog!",
                 btnGuestModalAction: "Scrivi il comportamento (Gratis) ➔",
                 btnGuestModalPro: "Oppure scopri le funzioni del piano Vision PRO",
                 authModalTitle: "Accedi a BioDog",
-                authModalSub: "Unisciti a oltre 5.000 proprietari ed educatori cinofili",
-                authPerk1: "2 Traduzioni Complete Gratuite incluse",
-                authPerk2: "Diario Etologico Personale sincronizzato",
-                authPerk3: "100% Gratuito: Nessuna carta richiesta",
+                authModalSub: "Crea il tuo account gratuito in pochi secondi",
+                authPerk1: "<strong>2 Traduzioni Complete Gratuite</strong> incluse",
+                authPerk2: "<strong>Diario Etologico</strong> sincronizzato tra dispositivi",
+                authPerk3: "Gratuito: <strong>Nessuna carta richiesta</strong>",
                 btnGoogleSign: "Continua con Google (1 Clic)",
                 dividerAuth: "oppure link magico email",
                 authEmailPlaceholder: "Inserisci la tua email...",
                 btnMagicLink: "Ricevi Link di Accesso Rapido ✨",
+                authSuccessHead: "📩 <strong>Controlla la tua email!</strong>",
+                authSuccessBody: "Ti abbiamo inviato un link di accesso istantaneo.",
+                authInvalidEmail: "Inserisci un indirizzo email valido.",
+                authSendError: "Invio non riuscito. Riprova tra qualche istante.",
                 paywallTitle: "Scegli come capire il tuo cane ogni giorno",
-                paywallSubtitle: "Smetti di interpretare all'umana. Risposte scientifiche immediate, disdici quando vuoi.",
-                paywallPill: "Investimento Etologico Trasparente",
+                paywallSubtitle: "Smetti di interpretare all'umana. Risposte immediate su base scientifica, disdici quando vuoi.",
+                paywallPill: "Prezzi Trasparenti",
                 perMonth: "/ mese",
+                tagPremium: "Base",
+                tagStandard: "Solo Testo",
+                tagPro: "Completo",
+                proBannerTop: "⭐ IL PIÙ COMPLETO",
+                perksPremium: "<li>• 100 Analisi Testuali / mese</li><li>• Decodifica 4 Sensi Umwelt</li><li>• Guida posturale e tono di voce</li><li>• Diario Etologico sincronizzato</li>",
+                perksStandard: "<li>• Analisi Testuali Illimitate</li><li>• Decodifica 4 Sensi Umwelt</li><li>• Guida posturale e tono di voce</li><li>• Diario Etologico sincronizzato</li>",
+                perksPro: "<li>• Analisi Testuali Illimitate</li><li>• <strong>Video-Analisi (Live & Galleria)</strong></li><li>• <strong>Configuratore Razza con Preset</strong></li><li>• Guida posturale e tono di voce</li><li>• Diario Etologico sincronizzato</li>",
+                btnPlanPremium: "Scegli Premium",
+                btnPlanStandard: "Scegli Standard",
+                btnPlanPro: "Sblocca Vision PRO",
                 downsellTitle: "Non vuoi abbonarti ora? Nessun problema!",
-                downsellSub: "BioDog ti regala comunque 1 consulto etologico di mantenimento ogni domenica mattina.",
+                downsellSub: "Con l'account gratuito hai comunque 1 consulto etologico omaggio ogni domenica.",
                 downsellBtn: "Ho capito, aspetterò domenica ➔",
+                welcomeTitle: "Scopri il mondo attraverso i suoi occhi.",
+                welcomeSub: "Un traduttore basato su neuroscienze affettive ed etologia canina.",
+                welcomeBody: "<p>• <strong>Neuroscienze di Panksepp:</strong> Analizziamo i 7 circuiti emotivi primari senza proiezioni umane morali.</p><p>• <strong>Umwelt Sensoriale:</strong> Decodifica della vista rasoterra, decadimento molecolare olfattivo e prossemica.</p><p>• <strong>Distanze di Hediger:</strong> Comprendi le reazioni di allerta ed evita la frustrazione da barriera frontale.</p>",
+                welcomeStart: "Inizia a tradurre",
                 drawerTitle: "Diario Etologico",
-                drawerSub: "Cronologia e registro dell'umore",
+                drawerSub: "Cronologia delle analisi, sincronizzata",
                 btnClearHistory: "Svuota diario",
-                footerSupport: "Hai domande o suggerimenti? Scrivici a"
+                clearHistoryConfirm: "Vuoi davvero cancellare tutte le analisi del diario?",
+                historyEmpty: "Diario vuoto.",
+                historyReopen: "Riapri analisi",
+                historyCount: n => n === 1 ? "1 analisi" : `${n} analisi`,
+                historyLoadError: "Impossibile caricare il diario.",
+                footerSupport: "Hai domande o suggerimenti? Scrivici a",
+                cookieBanner: "Usiamo un cookie di marketing (Meta Pixel) per misurare le campagne pubblicitarie, solo se acconsenti. Le statistiche di base (Umami) non usano cookie.",
+                cookieAccept: "Accetta",
+                cookieReject: "Rifiuta",
+                cookiePrefs: "Preferenze cookie",
+                videoAnalysisLabel: "Analisi video",
+                // Messaggi di blocco / errore
+                msgGuestLimit: "🔒 <strong>Registrati gratis per sbloccare le tue 2 Traduzioni Complete!</strong>",
+                msgTrialExhausted: "🐾 <strong>Hai completato le tue traduzioni gratuite.</strong> Scegli un piano per continuare, oppure torna domenica per il consulto omaggio!",
+                msgMonthlyLimit: "📈 <strong>Hai usato tutte le 100 analisi del mese.</strong> Passa a un piano illimitato per continuare.",
+                msgMorphPro: "🧬 <strong>Passa a BioDog Vision PRO (3,99 €/m)</strong> per calibrare vista, olfatto e distanze in base alla razza!",
+                msgMorphGuest: "🧬 <strong>Il Configuratore Morfologico è riservato a BioDog Vision PRO!</strong><br>Accedi o registrati per iniziare.",
+                msgVideoPro: "🎥 <strong>Passa a Vision PRO (3,99 €/m)</strong> per registrare o caricare filmati con la Visione Artificiale!",
+                msgSessionExpired: "La tua sessione è scaduta: accedi di nuovo.",
+                msgCheckoutLogin: "Accedi o registrati per completare l'abbonamento!",
+                msgPortalLogin: "Accedi al tuo account per gestire l'abbonamento",
+                msgNoCustomer: "Nessun abbonamento Stripe collegato. Scegli il tuo piano qui sotto:",
+                msgCbarqLogin: "📋 <strong>Registrati gratis</strong> per salvare il profilo nel Diario del tuo cane!",
+                errEngine: "Il motore di analisi non risponde. Riprova tra poco: nessun credito è stato usato.",
+                errNetwork: "Impossibile contattare BioDog. Controlla la connessione e riprova: nessun credito è stato usato.",
+                errService: "Servizio temporaneamente non disponibile. Riprova tra poco.",
+                errVideoTooLarge: "Il filmato supera i 25MB. Carica una clip più breve!",
+                errVideoType: "Formato video non supportato: usa MP4, MOV o WebM.",
+                errCheckout: "Impossibile avviare il pagamento. Riprova tra poco.",
+                errPortal: "Impossibile aprire la gestione dell'abbonamento. Riprova tra poco.",
+                errSave: "Analisi completata, ma non è stato possibile salvarla nel diario."
             },
             en: {
                 pageTitle: "BioDog.io | Ethological Dog Translator & Canine Psychology",
                 metaDesc: "Step inside your dog's mind. BioDog.io decodes body language, emotional circuits and sensory Umwelt on a scientific ground.",
                 inAppAlert: '💡 Tip: Tap the 3 dots in the top right and choose <strong>"Open in Chrome / Safari"</strong> to save your progress!',
-                stripeSuccess: "Congratulations! Your <strong>BioDog</strong> subscription is active.",
+                stripeSuccess: "Payment received! Activating your <strong>BioDog</strong> subscription…",
+                stripeActive: "Congratulations! Your <strong>BioDog</strong> subscription is active.",
+                stripePending: "Payment received. Activation can take a few minutes: reload the page shortly.",
                 loginBtn: "Sign In / Register",
                 diaryHeader: "Logbook",
                 manageSub: "Subscription",
                 upgradeBtnHeader: "PRO Plans",
                 welcomeBtn: "What is BioDog?",
-                trialBadge: "Try your <strong>2 Free Welcome Decodings</strong> now!",
-                trialBadgeLoggedIn: "You have <strong>2 Free Full Decodings</strong> included in your account!",
+                trialBadge: "Sign up free and get <strong>2 Full Decodings</strong>!",
+                trialRemaining: n => n === 1 ? "You have <strong>1 free decoding</strong> left" : `You have <strong>${n} free decodings</strong> left`,
+                trialSunday: "It's Sunday: you have <strong>1 free consultation</strong>!",
+                trialExhausted: "Free trials used • every Sunday you get <strong>1 free consultation</strong>",
+                premiumRemaining: n => `<strong>${n} analyses</strong> left this month`,
                 heroTitle: "Step inside your dog's mind.",
                 heroSubtitle: "Stop guessing why your dog barks, freezes, or jumps up. BioDog translates canine behavior from a biological and ethological viewpoint, free of human moral biases.",
                 trust1Title: "🐕 Ethological AI",
                 trust1Sub: "DogFACS & Neuroscience",
-                trust2Title: "🔬 100% Biology",
+                trust2Title: "🔬 Biology-Based",
                 trust2Sub: "Panksepp's 7 Affective Circuits",
-                trust3Sub: "rated by owners & certified trainers",
-                liveCounterWrap: "Over <strong id='liveUserCounter' class='text-slate-700 font-extrabold'>38 owners</strong> are consulting BioDog right now",
                 queryPlaceholder: "Describe what your dog does or record a video...",
                 btnTranslate: "Decode feelings now 🐾",
-                btnTranslating: "Processing...",
-                microcopySearch: "<span>🔒 100% Objective & Biological</span><span>•</span><span>✨ No credit card needed for trial</span>",
+                microcopySearch: "<span>🔒 No blame, no guilt</span><span>•</span><span>✨ No credit card needed for trials</span>",
                 quickCasesLabel: "Common Scenarios:",
                 quickCases: [
                     "When I come home he jumps frantically on me and licks my hands",
@@ -1551,23 +1586,28 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 quickChipsLabels: ["🐾 Jumps when greeting", "🏃 Runs off off-leash", "🦴 Food guarding / Growls"],
                 loadingTitle: "BioDog is decoding the behavior...",
                 loadingText: "Mapping sensory Umwelt and Panksepp circuits 🧠🐾",
-                loadingSub: "Takes about 2-4 seconds. Decoupling human anthropomorphism.",
-                cbarqTitle: "C-BARQ Express Test (45s)",
-                cbarqClinicalTag: "Clinical",
-                cbarqSubtitle: "Map your dog's 4 primary emotional vulnerabilities based on the scientific C-BARQ model.",
-                cbarqProgressLabel: "Assessment Progress:",
-                cbarqComputing: "Computing C-BARQ Matrix in progress...",
+                loadingSub: "Usually a few seconds (the first request may take up to a minute).",
+                loadingVideoTitle: "BioDog is analyzing the video...",
+                cbarqTitle: "Express Behavior Test (45s)",
+                cbarqClinicalTag: "C-BARQ inspired",
+                cbarqSubtitle: "4 questions inspired by the C-BARQ questionnaire: an indicative profile, not a clinical assessment.",
+                cbarqProgressLabel: "Progress:",
+                cbarqQuestion: (i, n) => `Question ${i} / ${n}`,
+                cbarqCompleted: "completed",
+                cbarqDone: "Completed",
+                cbarqComputing: "Computing your profile...",
                 cbarqComputingSub: "Cross-referencing behavioral axes with Panksepp affective circuits.",
-                cbarqReportLabel: "C-BARQ Profiling Outcome:",
+                cbarqReportLabel: "Indicative profile:",
                 btnPinCbarq: "Save to Logbook",
+                btnPinCbarqDone: "Saved!",
                 btnRestartCbarq: "Retake Test",
                 scoreReactivity: "Social Reactivity",
                 scoreAnxiety: "Separation Distress",
                 scoreTouch: "Tactile Sensitivity",
-                scoreImpulse: "Impulse Control",
-                cbarqProtocolHeader: "Personalized De-escalation Protocol:",
-                lockOverlayTitle: "Build your Dog's Clinical Logbook",
-                lockOverlaySub: "100% Free • No Card • Unlock full report & get <strong>2 Free Full Decodings</strong>.",
+                scoreImpulse: "Excitability",
+                cbarqProtocolHeader: "Tips for your profile:",
+                lockOverlayTitle: "Build your Dog's Logbook",
+                lockOverlaySub: "Free • No card • Unlock the tips & get <strong>2 Free Full Decodings</strong>.",
                 btnUnlockGoogle: "Unlock Free with Google (1 Click)",
                 btnUnlockEmail: "Or receive Email Magic Link",
                 dailyMoodTitle: "Daily Emotional Check-in",
@@ -1582,31 +1622,47 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 moodAnxiousDesc: "Clinginess, whining, separation agitation.",
                 moodHyperTitle: "Hyper / Euphoric",
                 moodHyperDesc: "Jumping up, motor discharges, difficulty settling.",
+                moodSaved: "Recorded for today! 🔥",
+                moodUpdated: "Today's mood updated.",
+                moodSaveError: "Could not save the check-in. Please retry shortly.",
                 zeroCreditsTag: "0 Credits Used",
                 weeklyHeatmapLabel: "Last 7 Days Trend:",
+                weekdaysShort: ["S", "M", "T", "W", "T", "F", "S"],
                 morphHeading: "Canine Morphological Profile",
                 morphActionUnlock: "Unlock with PRO",
                 morphActionConfig: "Configure Profile",
-                presetHeader: "⚡ Quick Breed Presets (1 Click)",
+                morphProActive: "PRO ACTIVE",
+                presetHeader: "Quick Breed Presets (1 Click)",
                 presetSub: "Instantly configure the 4 sensory parameters",
                 labelSnout: "Skull (Smell)",
                 labelEars: "Ears (Hearing)",
                 labelSize: "Size (Eye Height)",
                 labelTail: "Tail (Visual Posture)",
                 sensoryActiveLabel: "Active Sensory Computation:",
+                morphNames: {
+                    snout: { flat: "Brachycephalic", normal: "Mesocephalic", long: "Dolichocephalic" },
+                    ears: { prick: "Prick Ears", drop: "Drop Ears" },
+                    size: { small: "Small Size", medium: "Medium Size", large: "Large Size" },
+                    tail: { long: "Long Tail", curled: "Curled Tail", short: "Short Tail" }
+                },
+                earStats: { prick: "180° mobility", drop: "Frontal listening" },
+                tailStats: { long: "Full signaling", curled: "Reduced signals", short: "Limited signals" },
+                heightLabel: "Height",
+                smellUnit: "smell",
+                fovUnit: "field of view",
+                heightUnit: "height",
                 saveToast: "Translation saved to your Ethological Logbook!",
-                unlockToast: "Practical protocol unlocked! Added to Logbook.",
-                sundayToast: "You just claimed your Free Sunday Token!",
+                sundayToast: "You just claimed your <strong>Free Sunday Token!</strong>",
                 resMorphBadgeTitle: "Calibrated on PRO Morphological Profile",
                 resMorphProTag: "PRO Biometric Engine",
-                resCbarqBadgeTitle: "Integrated C-BARQ Emotional Matrix",
-                resCbarqProTag: "Hyper-Personalization Active",
                 resPankseppHeader: "Neuroaffective State (Panksepp):",
                 valencePrefix: "Valence:",
+                valencePleasant: v => `Pleasant Experience (+${v})`,
+                valenceDistress: v => `Distress / Tension (${v})`,
+                valenceNeutral: v => `Neutral State (${v})`,
                 resArousalLabel: "Motor Agitation (Arousal):",
                 resThoughtHeader: "Inside the dog's mind right now:",
-                sensoryThermometerHeader: "Sensory Biological Umwelt Thermometer",
-                sensoryIntensityTag: "Channel Intensity %",
+                sensoryThermometerHeader: "The 4 Sensory Channels (Umwelt)",
                 chSmellTitle: "Chemical Olfaction",
                 chSightTitle: "Ground-Level Vision",
                 chHearingTitle: "Hearing & Prosody",
@@ -1617,250 +1673,236 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 resExplanationHeader: "Why is your dog doing this?",
                 resStepsHeader: "What to do right now:",
                 resForbiddenHeader: "Errors to avoid:",
-                blurCardTitle: "Create your Dog's Clinical Logbook",
-                blurCardSub: "100% Free • No credit card required. 1-Click unlock for posture guide, exact steps and 2 Full Decodings.",
+                lockedPlaceholder: "Available after free sign-up.",
+                blurCardTitle: "Create your Dog's Logbook",
+                blurCardSub: "Free • No credit card required. Unlock the posture guide, the exact steps and 2 Full Decodings.",
                 btnBlurGoogle: "Unlock Free with Google (1 Click)",
                 btnBlurEmail: "Or sign in via Email without password ✨",
+                blurEmailPrompt: "Get your instant access link by email!",
                 feedbackPrompt: "Is this decoding accurate?",
                 feedbackYes: "Yes, matches",
                 feedbackNo: "Could improve",
-                feedbackThanks: "Thank you! Feedback recorded.",
+                feedbackThanks: "Thanks for your feedback!",
                 btnWhatsApp: "Share on WhatsApp",
-                btnCopyAnalysisText: "Copy report",
+                btnCopyAnalysisText: "Copy analysis",
                 copiedToast: "Copied! ✓",
-                authorityPill: "Trust Engineering & Scientific Rigor",
-                authorityTitle: "Why BioDog's answers are 100% scientifically grounded",
+                authorityPill: "Scientific Foundations",
+                authorityTitle: "What BioDog's answers are based on",
                 auth1Title: "Neuroscience",
                 auth1Sub: "Jaak Panksepp's 7 Circuits",
                 auth2Title: "Cognitive Ethology",
                 auth2Sub: "Sensory Umwelt & Hediger Distances",
-                auth3Title: "GDPR Compliant",
-                auth3Sub: "Zero Cookies & Protected Encryption",
-                auth4Title: "Stripe Verified",
-                auth4Sub: "256-bit encrypted checkout",
+                auth3Title: "Privacy",
+                auth3Sub: "Marketing cookies only with consent",
+                auth4Title: "Stripe Payments",
+                auth4Sub: "Encrypted checkout, cancel anytime",
                 disclaimerTitle: "Ethological Disclaimer & Legal Notice:",
                 disclaimerBody: "The analyses and decodings provided by BioDog.io are generated by Artificial Intelligence algorithms based on cognitive ethology and affective neuroscience models (Jaak Panksepp's primary circuits, sensory Umwelt, Hediger's safety distances). These outputs are strictly educational and informative, and under no circumstances replace a licensed Veterinary Behaviorist or an official clinical diagnosis. In the event of overt aggression, severe phobias, biting, physical pain indicators, or sudden behavioral alterations, always consult a qualified Veterinary Behaviorist or certified canine trainer promptly. BioDog.io assumes no liability for actions or decisions taken by the user based solely on the software-generated insights.",
                 guestModalBadge: "🎁 2 Free Decodings Included",
                 guestModalTitle: "Start free right now with text!",
-                guestModalSub: "Computer Vision video analysis is exclusive to Vision PRO, but you have 2 Free Text Decodings available right now to test the scientific engine!",
+                guestModalSub: "Computer Vision video analysis is exclusive to <strong>Vision PRO</strong>, but signing up gives you <strong>2 Free Text Decodings</strong> to try BioDog!",
                 btnGuestModalAction: "Describe the behavior (Free) ➔",
                 btnGuestModalPro: "Or explore Vision PRO features",
                 authModalTitle: "Sign in to BioDog",
-                authModalSub: "Join over 5,000 mindful dog owners and trainers",
-                authPerk1: "2 Free Full Decodings included",
-                authPerk2: "Personal Canine Logbook synced",
-                authPerk3: "100% Free: No card needed",
+                authModalSub: "Create your free account in seconds",
+                authPerk1: "<strong>2 Free Full Decodings</strong> included",
+                authPerk2: "<strong>Canine Logbook</strong> synced across devices",
+                authPerk3: "Free: <strong>No card needed</strong>",
                 btnGoogleSign: "Continue with Google (1 Click)",
                 dividerAuth: "or email magic link",
                 authEmailPlaceholder: "Enter your email address...",
                 btnMagicLink: "Receive Instant Access Link ✨",
+                authSuccessHead: "📩 <strong>Check your inbox!</strong>",
+                authSuccessBody: "We sent you an instant sign-in link.",
+                authInvalidEmail: "Please enter a valid email address.",
+                authSendError: "Sending failed. Please retry in a moment.",
                 paywallTitle: "Choose how to understand your dog every day",
-                paywallSubtitle: "Stop human guesswork. Immediate scientific insights, cancel anytime.",
-                paywallPill: "Transparent Ethological Investment",
+                paywallSubtitle: "Stop human guesswork. Immediate science-based insights, cancel anytime.",
+                paywallPill: "Transparent Pricing",
                 perMonth: "/ month",
+                tagPremium: "Basic",
+                tagStandard: "Text Only",
+                tagPro: "Complete",
+                proBannerTop: "⭐ MOST COMPLETE",
+                perksPremium: "<li>• 100 Text Analyses / month</li><li>• 4-Sense Umwelt Decoding</li><li>• Posture & voice guide</li><li>• Synced Ethological Logbook</li>",
+                perksStandard: "<li>• Unlimited Text Analyses</li><li>• 4-Sense Umwelt Decoding</li><li>• Posture & voice guide</li><li>• Synced Ethological Logbook</li>",
+                perksPro: "<li>• Unlimited Text Analyses</li><li>• <strong>Video Analysis (Live & Gallery)</strong></li><li>• <strong>Breed Configurator with Presets</strong></li><li>• Posture & voice guide</li><li>• Synced Ethological Logbook</li>",
+                btnPlanPremium: "Choose Premium",
+                btnPlanStandard: "Choose Standard",
+                btnPlanPro: "Unlock Vision PRO",
                 downsellTitle: "Not ready to subscribe? No worries!",
-                downsellSub: "BioDog still grants you 1 free maintenance decoding every Sunday morning.",
+                downsellSub: "With a free account you still get 1 free consultation every Sunday.",
                 downsellBtn: "Understood, I will wait for Sunday ➔",
+                welcomeTitle: "See the world through their eyes.",
+                welcomeSub: "A translator based on affective neuroscience and canine ethology.",
+                welcomeBody: "<p>• <strong>Panksepp's Neuroscience:</strong> We analyze the 7 primary emotional circuits without human moral projections.</p><p>• <strong>Sensory Umwelt:</strong> Ground-level vision, olfactory molecular decay and proxemics.</p><p>• <strong>Hediger Distances:</strong> Understand alert reactions and avoid frontal barrier frustration.</p>",
+                welcomeStart: "Start translating",
                 drawerTitle: "Ethological Logbook",
-                drawerSub: "History and daily mood logs",
+                drawerSub: "Synced analysis history",
                 btnClearHistory: "Clear logbook",
-                footerSupport: "Questions or feedback? Email us at"
+                clearHistoryConfirm: "Do you really want to delete every analysis in the logbook?",
+                historyEmpty: "Logbook is empty.",
+                historyReopen: "Reopen analysis",
+                historyCount: n => n === 1 ? "1 analysis" : `${n} analyses`,
+                historyLoadError: "Could not load the logbook.",
+                footerSupport: "Questions or feedback? Email us at",
+                cookieBanner: "We use a marketing cookie (Meta Pixel) to measure ad campaigns, only if you consent. Basic statistics (Umami) are cookieless.",
+                cookieAccept: "Accept",
+                cookieReject: "Reject",
+                cookiePrefs: "Cookie preferences",
+                videoAnalysisLabel: "Video analysis",
+                msgGuestLimit: "🔒 <strong>Sign up free to unlock your 2 Full Decodings!</strong>",
+                msgTrialExhausted: "🐾 <strong>You used your free decodings.</strong> Choose a plan to continue, or come back on Sunday for the free consultation!",
+                msgMonthlyLimit: "📈 <strong>You used all 100 analyses this month.</strong> Switch to an unlimited plan to continue.",
+                msgMorphPro: "🧬 <strong>Upgrade to BioDog Vision PRO (3.99 €/mo)</strong> to calibrate vision, olfactory turbinates and distance awareness based on breed!",
+                msgMorphGuest: "🧬 <strong>Morphological calibration is reserved for BioDog Vision PRO!</strong><br>Sign in or register to get started.",
+                msgVideoPro: "🎥 <strong>Upgrade to Vision PRO (3.99 €/mo)</strong> to upload or record videos with AI Vision!",
+                msgSessionExpired: "Your session expired: please sign in again.",
+                msgCheckoutLogin: "Please sign in or register to complete your subscription!",
+                msgPortalLogin: "Please sign in to manage your subscription",
+                msgNoCustomer: "No active Stripe subscription found. Select your plan below:",
+                msgCbarqLogin: "📋 <strong>Sign up free</strong> to save the profile in your dog's Logbook!",
+                errEngine: "The analysis engine is not responding. Please retry shortly: no credit was used.",
+                errNetwork: "Could not reach BioDog. Check your connection and retry: no credit was used.",
+                errService: "Service temporarily unavailable. Please retry shortly.",
+                errVideoTooLarge: "Video exceeds 25MB max size. Please pick a shorter clip!",
+                errVideoType: "Unsupported video format: use MP4, MOV or WebM.",
+                errCheckout: "Could not start the payment. Please retry shortly.",
+                errPortal: "Could not open subscription management. Please retry shortly.",
+                errSave: "Analysis completed, but it could not be saved to the logbook."
             }
         };
 
+        // Testi statici: [id elemento, chiave I18N, modalità, prefisso HTML (icone)]
+        const TEXT_BINDINGS = [
+            ['txtInAppAlert', 'inAppAlert', 'html'],
+            ['txtLoginBtn', 'loginBtn'], ['txtDiaryHeader', 'diaryHeader'], ['txtManageSub', 'manageSub'],
+            ['txtUpgradeBtnHeader', 'upgradeBtnHeader'], ['txtWelcomeBtn', 'welcomeBtn'],
+            ['txtHeroTitle', 'heroTitle'], ['txtHeroSubtitle', 'heroSubtitle'],
+            ['txtTrust1Title', 'trust1Title'], ['txtTrust1Sub', 'trust1Sub'], ['txtTrust2Title', 'trust2Title'], ['txtTrust2Sub', 'trust2Sub'],
+            ['queryInput', 'queryPlaceholder', 'placeholder'],
+            ['txtBtnTranslateDesktop', 'btnTranslate'], ['txtBtnTranslateMobile', 'btnTranslate'],
+            ['txtMicrocopySearch', 'microcopySearch', 'html'], ['txtQuickCasesLabel', 'quickCasesLabel'],
+            ['loadingIndicatorText', 'loadingText'], ['loadingIndicatorSub', 'loadingSub'],
+            ['txtCbarqTitle', 'cbarqTitle'], ['txtCbarqClinicalTag', 'cbarqClinicalTag'], ['txtCbarqSubtitle', 'cbarqSubtitle'],
+            ['txtCbarqProgressLabel', 'cbarqProgressLabel'], ['txtCbarqComputing', 'cbarqComputing'], ['txtCbarqComputingSub', 'cbarqComputingSub'],
+            ['txtCbarqReportLabel', 'cbarqReportLabel'], ['txtBtnPinCbarq', 'btnPinCbarq'], ['txtBtnRestartCbarq', 'btnRestartCbarq'],
+            ['txtScoreReactivity', 'scoreReactivity'], ['txtScoreAnxiety', 'scoreAnxiety'], ['txtScoreTouch', 'scoreTouch'], ['txtScoreImpulse', 'scoreImpulse'],
+            ['txtCbarqProtocolHeader', 'cbarqProtocolHeader', 'text', '<i class="fa-solid fa-list-check text-purple-600 mr-1.5"></i> '],
+            ['txtLockOverlayTitle', 'lockOverlayTitle'], ['txtLockOverlaySub', 'lockOverlaySub', 'html'],
+            ['txtBtnUnlockGoogle', 'btnUnlockGoogle'], ['txtBtnUnlockEmail', 'btnUnlockEmail'],
+            ['txtDailyMoodTitle', 'dailyMoodTitle'], ['txtDailyMoodSub', 'dailyMoodSub'], ['txtStreakLabel', 'streakLabel'],
+            ['txtDailyMoodPrompt', 'dailyMoodPrompt'],
+            ['txtMoodCalmTitle', 'moodCalmTitle'], ['txtMoodCalmDesc', 'moodCalmDesc'],
+            ['txtMoodReactiveTitle', 'moodReactiveTitle'], ['txtMoodReactiveDesc', 'moodReactiveDesc'],
+            ['txtMoodAnxiousTitle', 'moodAnxiousTitle'], ['txtMoodAnxiousDesc', 'moodAnxiousDesc'],
+            ['txtMoodHyperTitle', 'moodHyperTitle'], ['txtMoodHyperDesc', 'moodHyperDesc'],
+            ['txtZeroCreditsTag', 'zeroCreditsTag'],
+            ['txtWeeklyHeatmapLabel', 'weeklyHeatmapLabel', 'text', '<i class="fa-solid fa-calendar-days text-emerald-600"></i> '],
+            ['txtMorphHeading', 'morphHeading'],
+            ['txtPresetHeader', 'presetHeader', 'text', '<span>⚡</span> '], ['txtPresetSub', 'presetSub'],
+            ['txtLabelSnout', 'labelSnout', 'text', '<span>👃</span> '], ['txtLabelEars', 'labelEars', 'text', '<span>👂</span> '],
+            ['txtLabelSize', 'labelSize', 'text', '<span>📏</span> '], ['txtLabelTail', 'labelTail', 'text', '<span>🐾</span> '],
+            ['txtSensoryActiveLabel', 'sensoryActiveLabel', 'text', '<i class="fa-solid fa-calculator text-emerald-600"></i> '],
+            ['txtSaveToast', 'saveToast'], ['txtSundayToast', 'sundayToast', 'html'],
+            ['txtResMorphBadgeTitle', 'resMorphBadgeTitle'], ['txtResMorphProTag', 'resMorphProTag'],
+            ['txtResPankseppHeader', 'resPankseppHeader'], ['txtValencePrefix', 'valencePrefix'], ['txtResArousalLabel', 'resArousalLabel'],
+            ['txtResThoughtHeader', 'resThoughtHeader'],
+            ['txtSensoryThermometerHeader', 'sensoryThermometerHeader', 'text', '<i class="fa-solid fa-chart-simple text-emerald-600"></i> '],
+            ['txtChSmellTitle', 'chSmellTitle'], ['txtChSightTitle', 'chSightTitle'], ['txtChHearingTitle', 'chHearingTitle'], ['txtChTouchTitle', 'chTouchTitle'],
+            ['txtResBodyLanguageHeader', 'resBodyLanguageHeader', 'text', '<i class="fa-solid fa-person text-amber-600 text-sm"></i> '],
+            ['txtResVoiceLabel', 'resVoiceLabel'], ['txtResPostureLabel', 'resPostureLabel'],
+            ['txtResExplanationHeader', 'resExplanationHeader', 'text', '<i class="fa-solid fa-lightbulb text-amber-500 text-lg"></i> '],
+            ['txtResStepsHeader', 'resStepsHeader', 'text', '<i class="fa-solid fa-circle-check text-emerald-600 text-base"></i> '],
+            ['txtResForbiddenHeader', 'resForbiddenHeader', 'text', '<i class="fa-solid fa-circle-xmark text-rose-600 text-base"></i> '],
+            ['txtBlurCardTitle', 'blurCardTitle'], ['txtBlurCardSub', 'blurCardSub', 'html'],
+            ['txtBtnBlurGoogle', 'btnBlurGoogle'], ['txtBtnBlurEmail', 'btnBlurEmail'],
+            ['txtFeedbackPrompt', 'feedbackPrompt', 'text', '<i class="fa-solid fa-comments text-emerald-600"></i> '],
+            ['txtFeedbackYes', 'feedbackYes'], ['txtFeedbackNo', 'feedbackNo'], ['txtFeedbackThanks', 'feedbackThanks'],
+            ['txtBtnWhatsApp', 'btnWhatsApp'], ['btnCopyAnalysisText', 'btnCopyAnalysisText'],
+            ['txtAuthorityPill', 'authorityPill'], ['txtAuthorityTitle', 'authorityTitle'],
+            ['txtAuth1Title', 'auth1Title'], ['txtAuth1Sub', 'auth1Sub'], ['txtAuth2Title', 'auth2Title'], ['txtAuth2Sub', 'auth2Sub'],
+            ['txtAuth3Title', 'auth3Title'], ['txtAuth3Sub', 'auth3Sub'], ['txtAuth4Title', 'auth4Title'], ['txtAuth4Sub', 'auth4Sub'],
+            ['txtDisclaimerTitle', 'disclaimerTitle', 'text', '<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> '],
+            ['txtDisclaimerBody', 'disclaimerBody'],
+            ['txtGuestModalBadge', 'guestModalBadge'], ['txtGuestModalTitle', 'guestModalTitle'], ['txtGuestModalSub', 'guestModalSub', 'html'],
+            ['txtBtnGuestModalAction', 'btnGuestModalAction'], ['txtBtnGuestModalPro', 'btnGuestModalPro'],
+            ['authModalTitle', 'authModalTitle'], ['txtAuthModalSub', 'authModalSub'],
+            ['txtAuthPerk1', 'authPerk1', 'html'], ['txtAuthPerk2', 'authPerk2', 'html'], ['txtAuthPerk3', 'authPerk3', 'html'],
+            ['txtBtnGoogleSign', 'btnGoogleSign'], ['txtDividerAuth', 'dividerAuth'],
+            ['authEmail', 'authEmailPlaceholder', 'placeholder'], ['txtBtnMagicLink', 'btnMagicLink'],
+            ['txtAuthSuccessHead', 'authSuccessHead', 'html'], ['txtAuthSuccessBody', 'authSuccessBody'],
+            ['paywallTitle', 'paywallTitle'], ['paywallSubtitle', 'paywallSubtitle'],
+            ['txtPaywallPill', 'paywallPill', 'text', '<span>✨</span> '],
+            ['txtPerMonth1', 'perMonth'], ['txtPerMonth2', 'perMonth'], ['txtPerMonth3', 'perMonth'],
+            ['txtTagStandard', 'tagStandard'], ['txtTagPro', 'tagPro'], ['txtProBannerTop', 'proBannerTop'],
+            ['listPerksPremium', 'perksPremium', 'html'], ['listPerksStandard', 'perksStandard', 'html'], ['listPerksPro', 'perksPro', 'html'],
+            ['txtBtnPlanPremium', 'btnPlanPremium'], ['txtBtnPlanStandard', 'btnPlanStandard'], ['txtBtnPlanPro', 'btnPlanPro'],
+            ['txtDownsellTitle', 'downsellTitle'], ['txtDownsellSub', 'downsellSub'], ['txtDownsellBtn', 'downsellBtn'],
+            ['txtWelcomeModalTitle', 'welcomeTitle'], ['txtWelcomeModalSub', 'welcomeSub'],
+            ['txtWelcomeModalBody', 'welcomeBody', 'html'], ['txtWelcomeModalStartBtn', 'welcomeStart'],
+            ['txtDrawerTitle', 'drawerTitle'], ['txtDrawerSub', 'drawerSub'],
+            ['txtBtnClearHistory', 'btnClearHistory', 'text', '<i class="fa-solid fa-trash-can"></i> '],
+            ['txtFooterSupport', 'footerSupport'],
+            ['txtCookieBanner', 'cookieBanner'], ['txtCookieAccept', 'cookieAccept'], ['txtCookieReject', 'cookieReject'], ['txtCookiePrefs', 'cookiePrefs'],
+        ];
+
+        // ==================== UTILITÀ ====================
+        function esc(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function $(id) { return document.getElementById(id); }
+        function show(id) { $(id)?.classList.remove('hidden'); }
+        function hide(id) { $(id)?.classList.add('hidden'); }
+        function storageGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+        function storageSet(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+        function storageRemove(key) { try { localStorage.removeItem(key); } catch (e) {} }
+        function T() { return I18N[currentLang]; }
+
         // Rilevamento lingua iniziale (memorizzata o rilevata dal browser)
-        let currentLang = localStorage.getItem('biodog_lang') || (navigator.language && navigator.language.toLowerCase().startsWith('it') ? 'it' : 'en');
+        let currentLang = storageGet('biodog_lang') || (navigator.language && navigator.language.toLowerCase().startsWith('it') ? 'it' : 'en');
         if (currentLang !== 'it' && currentLang !== 'en') currentLang = 'it';
 
         function changeLanguage(targetLang) {
             currentLang = targetLang;
-            localStorage.setItem('biodog_lang', currentLang);
+            storageSet('biodog_lang', currentLang);
             applyLanguageUI();
         }
 
         function applyLanguageUI() {
-            const t = I18N[currentLang];
+            const t = T();
             document.documentElement.lang = currentLang;
+            $('btnLang_it')?.classList.toggle('lang-active', currentLang === 'it');
+            $('btnLang_it')?.classList.toggle('lang-inactive', currentLang !== 'it');
+            $('btnLang_en')?.classList.toggle('lang-active', currentLang === 'en');
+            $('btnLang_en')?.classList.toggle('lang-inactive', currentLang !== 'en');
 
-            // Aggiorna bottoni pill selettore lingua
-            const btnIt = document.getElementById('btnLang_it');
-            const btnEn = document.getElementById('btnLang_en');
-            if (btnIt && btnEn) {
-                if (currentLang === 'it') {
-                    btnIt.className = "px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs transition flex items-center gap-1 lang-active";
-                    btnEn.className = "px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs transition flex items-center gap-1 lang-inactive";
-                } else {
-                    btnIt.className = "px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs transition flex items-center gap-1 lang-inactive";
-                    btnEn.className = "px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs transition flex items-center gap-1 lang-active";
-                }
-            }
-
-            // Testi Globali & Header
             document.title = t.pageTitle;
-            const metaD = document.getElementById('metaDescription');
-            if (metaD) metaD.setAttribute('content', t.metaDesc);
+            $('metaDescription')?.setAttribute('content', t.metaDesc);
 
-            const txtInAppAlert = document.getElementById('txtInAppAlert');
-            if (txtInAppAlert) txtInAppAlert.innerHTML = t.inAppAlert;
-
-            const txtStripeSuccess = document.getElementById('txtStripeSuccess');
-            if (txtStripeSuccess) txtStripeSuccess.innerHTML = t.stripeSuccess;
-
-            const txtLoginBtn = document.getElementById('txtLoginBtn');
-            if (txtLoginBtn) txtLoginBtn.innerText = t.loginBtn;
-
-            const txtDiaryHeader = document.getElementById('txtDiaryHeader');
-            if (txtDiaryHeader) txtDiaryHeader.innerText = t.diaryHeader;
-
-            const txtManageSub = document.getElementById('txtManageSub');
-            if (txtManageSub) txtManageSub.innerText = t.manageSub;
-
-            const txtUpgradeBtnHeader = document.getElementById('txtUpgradeBtnHeader');
-            if (txtUpgradeBtnHeader) txtUpgradeBtnHeader.innerText = t.upgradeBtnHeader;
-
-            const txtWelcomeBtn = document.getElementById('txtWelcomeBtn');
-            if (txtWelcomeBtn) txtWelcomeBtn.innerText = t.welcomeBtn;
-
-            // Hero
-            const txtTrialBadge = document.getElementById('txtTrialBadge');
-            if (txtTrialBadge) txtTrialBadge.innerHTML = currentUser ? t.trialBadgeLoggedIn : t.trialBadge;
-
-            const heroBadge = document.getElementById('trialBadgeHero');
-            if (heroBadge) {
-                if (isUserPremium) {
-                    heroBadge.classList.add('hidden');
-                } else {
-                    heroBadge.classList.remove('hidden');
-                }
+            for (const [id, key, mode = 'text', prefix = ''] of TEXT_BINDINGS) {
+                const el = $(id);
+                if (!el || t[key] === undefined) continue;
+                if (mode === 'placeholder') el.placeholder = t[key];
+                else if (mode === 'html') el.innerHTML = t[key];
+                else if (prefix) el.innerHTML = prefix + esc(t[key]);
+                else el.innerText = t[key];
             }
+            t.quickChipsLabels.forEach((label, idx) => { const chip = $(`chip_${idx}`); if (chip) chip.innerText = label; });
 
-            const txtHeroTitle = document.getElementById('txtHeroTitle');
-            if (txtHeroTitle) txtHeroTitle.innerText = t.heroTitle;
-
-            const txtHeroSubtitle = document.getElementById('txtHeroSubtitle');
-            if (txtHeroSubtitle) txtHeroSubtitle.innerText = t.heroSubtitle;
-
-            // Trust signals
-            const txtTrust1Title = document.getElementById('txtTrust1Title');
-            if (txtTrust1Title) txtTrust1Title.innerText = t.trust1Title;
-            const txtTrust1Sub = document.getElementById('txtTrust1Sub');
-            if (txtTrust1Sub) txtTrust1Sub.innerText = t.trust1Sub;
-            const txtTrust2Title = document.getElementById('txtTrust2Title');
-            if (txtTrust2Title) txtTrust2Title.innerText = t.trust2Title;
-            const txtTrust2Sub = document.getElementById('txtTrust2Sub');
-            if (txtTrust2Sub) txtTrust2Sub.innerText = t.trust2Sub;
-            const txtTrust3Sub = document.getElementById('txtTrust3Sub');
-            if (txtTrust3Sub) txtTrust3Sub.innerText = t.trust3Sub;
-
-            // Ricerca
-            const queryInput = document.getElementById('queryInput');
-            if (queryInput) queryInput.placeholder = t.queryPlaceholder;
-
-            const txtBtnTranslateDesktop = document.getElementById('txtBtnTranslateDesktop');
-            if (txtBtnTranslateDesktop) txtBtnTranslateDesktop.innerText = t.btnTranslate;
-
-            const txtBtnTranslateMobile = document.getElementById('txtBtnTranslateMobile');
-            if (txtBtnTranslateMobile) txtBtnTranslateMobile.innerText = t.btnTranslate;
-
-            const txtMicrocopySearch = document.getElementById('txtMicrocopySearch');
-            if (txtMicrocopySearch) txtMicrocopySearch.innerHTML = t.microcopySearch;
-
-            // Casi rapidi
-            const txtQuickCasesLabel = document.getElementById('txtQuickCasesLabel');
-            if (txtQuickCasesLabel) txtQuickCasesLabel.innerText = t.quickCasesLabel;
-
-            t.quickChipsLabels.forEach((label, idx) => {
-                const chip = document.getElementById(`chip_${idx}`);
-                if (chip) chip.innerText = label;
-            });
-
-            // Loading indicator
-            const lTitle = document.getElementById('loadingIndicatorTitle');
-            if (lTitle) lTitle.innerText = t.loadingTitle;
-            const lText = document.getElementById('loadingIndicatorText');
-            if (lText) lText.innerHTML = t.loadingText;
-            const lSub = document.getElementById('loadingIndicatorSub');
-            if (lSub) lSub.innerText = t.loadingSub;
-
-            // C-BARQ
-            const txtCbarqTitle = document.getElementById('txtCbarqTitle');
-            if (txtCbarqTitle) txtCbarqTitle.innerText = t.cbarqTitle;
-            const txtCbarqClinicalTag = document.getElementById('txtCbarqClinicalTag');
-            if (txtCbarqClinicalTag) txtCbarqClinicalTag.innerText = t.cbarqClinicalTag;
-            const txtCbarqSubtitle = document.getElementById('txtCbarqSubtitle');
-            if (txtCbarqSubtitle) txtCbarqSubtitle.innerText = t.cbarqSubtitle;
-            const txtCbarqProgressLabel = document.getElementById('txtCbarqProgressLabel');
-            if (txtCbarqProgressLabel) txtCbarqProgressLabel.innerText = t.cbarqProgressLabel;
-
-            // Modali
-            const txtLockOverlayTitle = document.getElementById('txtLockOverlayTitle');
-            if (txtLockOverlayTitle) txtLockOverlayTitle.innerText = t.lockOverlayTitle;
-            const txtLockOverlaySub = document.getElementById('txtLockOverlaySub');
-            if (txtLockOverlaySub) txtLockOverlaySub.innerHTML = t.lockOverlaySub;
-            const txtBtnUnlockGoogle = document.getElementById('txtBtnUnlockGoogle');
-            if (txtBtnUnlockGoogle) txtBtnUnlockGoogle.innerText = t.btnUnlockGoogle;
-            const txtBtnUnlockEmail = document.getElementById('txtBtnUnlockEmail');
-            if (txtBtnUnlockEmail) txtBtnUnlockEmail.innerText = t.btnUnlockEmail;
-
-            // Sezione Risultato
-            const txtResThoughtHeader = document.getElementById('txtResThoughtHeader');
-            if (txtResThoughtHeader) txtResThoughtHeader.innerText = t.resThoughtHeader;
-            const txtSensoryThermometerHeader = document.getElementById('txtSensoryThermometerHeader');
-            if (txtSensoryThermometerHeader) txtSensoryThermometerHeader.innerHTML = `<i class="fa-solid fa-chart-simple text-emerald-600"></i> ${t.sensoryThermometerHeader}`;
-            const txtChSmellTitle = document.getElementById('txtChSmellTitle');
-            if (txtChSmellTitle) txtChSmellTitle.innerText = t.chSmellTitle;
-            const txtChSightTitle = document.getElementById('txtChSightTitle');
-            if (txtChSightTitle) txtChSightTitle.innerText = t.chSightTitle;
-            const txtChHearingTitle = document.getElementById('txtChHearingTitle');
-            if (txtChHearingTitle) txtChHearingTitle.innerText = t.chHearingTitle;
-            const txtChTouchTitle = document.getElementById('txtChTouchTitle');
-            if (txtChTouchTitle) txtChTouchTitle.innerText = t.chTouchTitle;
-            const txtResBodyLanguageHeader = document.getElementById('txtResBodyLanguageHeader');
-            if (txtResBodyLanguageHeader) txtResBodyLanguageHeader.innerHTML = `<i class="fa-solid fa-person text-amber-600 text-sm"></i> ${t.resBodyLanguageHeader}`;
-            const txtResVoiceLabel = document.getElementById('txtResVoiceLabel');
-            if (txtResVoiceLabel) txtResVoiceLabel.innerText = t.resVoiceLabel;
-            const txtResPostureLabel = document.getElementById('txtResPostureLabel');
-            if (txtResPostureLabel) txtResPostureLabel.innerText = t.resPostureLabel;
-            const txtResExplanationHeader = document.getElementById('txtResExplanationHeader');
-            if (txtResExplanationHeader) txtResExplanationHeader.innerHTML = `<i class="fa-solid fa-lightbulb text-amber-500 text-lg"></i> ${t.resExplanationHeader}`;
-            const txtResStepsHeader = document.getElementById('txtResStepsHeader');
-            if (txtResStepsHeader) txtResStepsHeader.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 text-base"></i> ${t.resStepsHeader}`;
-            const txtResForbiddenHeader = document.getElementById('txtResForbiddenHeader');
-            if (txtResForbiddenHeader) txtResForbiddenHeader.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-600 text-base"></i> ${t.resForbiddenHeader}`;
-
-            const txtBlurCardTitle = document.getElementById('txtBlurCardTitle');
-            if (txtBlurCardTitle) txtBlurCardTitle.innerText = t.blurCardTitle;
-            const txtBlurCardSub = document.getElementById('txtBlurCardSub');
-            if (txtBlurCardSub) txtBlurCardSub.innerHTML = t.blurCardSub;
-            const txtBtnBlurGoogle = document.getElementById('txtBtnBlurGoogle');
-            if (txtBtnBlurGoogle) txtBtnBlurGoogle.innerText = t.btnBlurGoogle;
-            const txtBtnBlurEmail = document.getElementById('txtBtnBlurEmail');
-            if (txtBtnBlurEmail) txtBtnBlurEmail.innerText = t.btnBlurEmail;
-
-            // Feedback & Condivisione
-            const txtFeedbackPrompt = document.getElementById('txtFeedbackPrompt');
-            if (txtFeedbackPrompt) txtFeedbackPrompt.innerHTML = `<i class="fa-solid fa-comments text-emerald-600"></i> ${t.feedbackPrompt}`;
-            const txtFeedbackYes = document.getElementById('txtFeedbackYes');
-            if (txtFeedbackYes) txtFeedbackYes.innerText = t.feedbackYes;
-            const txtFeedbackNo = document.getElementById('txtFeedbackNo');
-            if (txtFeedbackNo) txtFeedbackNo.innerText = t.feedbackNo;
-            const txtBtnWhatsApp = document.getElementById('txtBtnWhatsApp');
-            if (txtBtnWhatsApp) txtBtnWhatsApp.innerText = t.btnWhatsApp;
-            const btnCopyAnalysisText = document.getElementById('btnCopyAnalysisText');
-            if (btnCopyAnalysisText) btnCopyAnalysisText.innerText = t.btnCopyAnalysisText;
-
-            // Footer
-            const txtFooterSupport = document.getElementById('txtFooterSupport');
-            if (txtFooterSupport) txtFooterSupport.innerText = t.footerSupport;
-
-            // Re-render dinamico dei componenti specifici
-            renderCbarqQuestion(cbarqCurrentStep);
+            // Componenti dinamici
+            updateTrialBadge();
+            updateMorphologyGatingUI();
+            updateMorphologyUI();
+            refreshCbarqWidget();
+            renderMoodUI();
+            updateHistoryBadge();
+            if (lastResult) displayTranslationResult(lastResult.synth, lastResult.locked);
         }
 
         function setQuickQuery(index) {
-            const t = I18N[currentLang];
-            const text = t.quickCases[index] || "";
-            const q = document.getElementById('queryInput');
+            const text = T().quickCases[index] || "";
+            const q = $('queryInput');
             if (q) q.value = text;
             runTranslation();
         }
@@ -1869,7 +1911,10 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
         const SUPABASE_URL = "https://itjfyjyzaornkintpefd.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_zLclG7vV8MNdtYFDghH6cg_a7IBTe8E";
         const BACKEND_API_BASE = "https://biodog-api.onrender.com";
-        
+        const META_PIXEL_ID = "1397106102636268";
+        const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
+        const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-m4v"];
+
         let supabaseClient = null;
         if (window.supabase) {
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1877,57 +1922,165 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
 
         let currentUser = null;
         let isUserPremium = false;
-        let userPlanTier = null;
-        let stripeCustomerId = null; 
-        let lastSynthesizedData = null;
+        let userPlanTier = null;   // 'premium' | 'standard' | 'pro' | null
+        let usageInfo = null;      // risposta di /api/v1/me
+        let lastResult = null;     // { query, synth, locked }
+        let historyItems = [];
+        let moodByDay = {};
+
+        // ==================== CONSENSO COOKIE (META PIXEL) ====================
+        function loadMetaPixel() {
+            if (window.fbq) return;
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', META_PIXEL_ID);
+            fbq('track', 'PageView');
+        }
+        function initCookieConsent() {
+            const consent = storageGet('biodog_cookie_consent');
+            if (consent === 'granted') loadMetaPixel();
+            else if (consent !== 'denied') show('cookieBanner');
+        }
+        function setCookieConsent(granted) {
+            const previous = storageGet('biodog_cookie_consent');
+            storageSet('biodog_cookie_consent', granted ? 'granted' : 'denied');
+            hide('cookieBanner');
+            if (granted) loadMetaPixel();
+            // Revoca: ricarica per scaricare il pixel già caricato.
+            else if (previous === 'granted') window.location.reload();
+        }
+        function openCookieBanner() { show('cookieBanner'); }
 
         function checkInAppBrowser() {
             const ua = navigator.userAgent || navigator.vendor || window.opera || "";
             const isInApp = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Instagram") > -1);
-            if (isInApp) {
-                document.getElementById('inAppBrowserAlert')?.classList.remove('hidden');
+            if (isInApp) show('inAppBrowserAlert');
+        }
+
+        // ==================== API BACKEND ====================
+        class ApiError extends Error {
+            constructor(message, status, code) { super(message); this.status = status; this.code = code; }
+        }
+
+        async function getAccessToken() {
+            if (!supabaseClient) return null;
+            try {
+                const { data } = await supabaseClient.auth.getSession();
+                return data?.session?.access_token || null;
+            } catch (e) { return null; }
+        }
+
+        async function apiFetch(path, { method = 'GET', json, body, timeoutMs = 120000 } = {}) {
+            const headers = {};
+            const token = await getAccessToken();
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            if (json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(json); }
+
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            let response;
+            try {
+                response = await fetch(`${BACKEND_API_BASE}${path}`, { method, headers, body, signal: controller.signal });
+            } catch (e) {
+                throw new ApiError(e.message, 0, 'network');
+            } finally {
+                clearTimeout(timer);
+            }
+            let data = null;
+            try { data = await response.json(); } catch (e) {}
+            if (!response.ok) {
+                const detail = data && typeof data.detail === 'object' ? data.detail : {};
+                throw new ApiError(detail.message || `HTTP ${response.status}`, response.status, detail.code || `http_${response.status}`);
+            }
+            return data;
+        }
+
+        // Traduce i codici di errore del backend in azioni comprensibili per l'utente.
+        function handleApiError(err) {
+            const t = T();
+            switch (err.code) {
+                case 'auth_required':
+                    openAuthModal(true, t.msgGuestLimit); return;
+                case 'invalid_session':
+                    openAuthModal(true, esc(t.msgSessionExpired)); return;
+                case 'trial_exhausted':
+                    openPaywallModal(t.msgTrialExhausted); refreshUsage(); return;
+                case 'monthly_limit':
+                    openPaywallModal(t.msgMonthlyLimit); refreshUsage(); return;
+                case 'pro_required':
+                    openPaywallModal(t.msgVideoPro); return;
+                case 'video_too_large':
+                    showError(t.errVideoTooLarge); return;
+                case 'unsupported_video':
+                    showError(t.errVideoType); return;
+                case 'engine_unavailable':
+                    showError(t.errEngine); return;
+                case 'network':
+                    showError(t.errNetwork); return;
+                default:
+                    showError(t.errService);
             }
         }
 
-        // ==================== STATO MORFOLOGICO PRO ====================
-        const dogMorphology = { snout: "normal", ears: "prick", size: "medium", tail: "long" };
+        function showError(message) {
+            const box = $('errorBox');
+            const text = $('errorBoxText');
+            if (text) text.innerText = message;
+            box?.classList.remove('hidden');
+            setTimeout(() => box?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+        }
+        function hideError() { hide('errorBox'); }
 
-        // ==================== DATI C-BARQ BILINGUI ====================
+        function showToast(id, ms = 3000) {
+            const el = $(id);
+            if (!el) return;
+            el.classList.remove('hidden');
+            clearTimeout(el._hideTimer);
+            el._hideTimer = setTimeout(() => el.classList.add('hidden'), ms);
+        }
+
+        // ==================== DATI TEST COMPORTAMENTALE BILINGUI ====================
         const CBARQ_DATA_IT = [
             {
                 axis: "Asse 1: Reattività verso Cani ed Estranei",
                 title: "Quando incontra un cane sconosciuto al guinzaglio...",
                 options: [
-                    { label: "Calmo / Indifferente", desc: "Nessuna tensione posturale", score: "low", val: 15 },
-                    { label: "Coda rigida / Fissa lo sguardo", desc: "Tensione motoria moderata", score: "mid", val: 55 },
-                    { label: "Abbaia / Tira con forza", desc: "Reattività e frustrazione da barriera", score: "high", val: 85 }
+                    { label: "Calmo / Indifferente", desc: "Nessuna tensione posturale", val: 15 },
+                    { label: "Coda rigida / Fissa lo sguardo", desc: "Tensione motoria moderata", val: 55 },
+                    { label: "Abbaia / Tira con forza", desc: "Reattività e frustrazione da barriera", val: 85 }
                 ]
             },
             {
                 axis: "Asse 2: Ansia da Separazione e Attaccamento",
                 title: "Quando prendi le chiavi o ti prepari a uscire di casa...",
                 options: [
-                    { label: "Resta calmo nella cuccia", desc: "Accetta la separazione", score: "low", val: 20 },
-                    { label: "Ti segue ovunque e veglia", desc: "Ricerca costante di contatto", score: "mid", val: 60 },
-                    { label: "Piange, ansima o distrugge", desc: "Panico da isolamento acuto", score: "high", val: 90 }
+                    { label: "Resta calmo nella cuccia", desc: "Accetta la separazione", val: 20 },
+                    { label: "Ti segue ovunque e veglia", desc: "Ricerca costante di contatto", val: 60 },
+                    { label: "Piange, ansima o distrugge", desc: "Panico da isolamento acuto", val: 90 }
                 ]
             },
             {
                 axis: "Asse 3: Sensibilità al Tatto e Paura Non Sociale",
                 title: "Durante un temporale, fuochi d'artificio o se tocchi le zampe...",
                 options: [
-                    { label: "Nessun disagio apparente", desc: "Resilienza agli stimoli", score: "low", val: 15 },
-                    { label: "Si scansa o evita il contatto", desc: "Evitamento e allerta", score: "mid", val: 50 },
-                    { label: "Trema, si blocca o ringhia", desc: "Stress simpatico e freezing", score: "high", val: 85 }
+                    { label: "Nessun disagio apparente", desc: "Resilienza agli stimoli", val: 15 },
+                    { label: "Si scansa o evita il contatto", desc: "Evitamento e allerta", val: 50 },
+                    { label: "Trema, si blocca o ringhia", desc: "Stress simpatico e freezing", val: 85 }
                 ]
             },
             {
                 axis: "Asse 4: Eccitabilità e Controllo degli Impulsi",
                 title: "Al tuo rientro a casa o quando vede la pettorina per uscire...",
                 options: [
-                    { label: "Festeggia con autocontrollo", desc: "Omeostasi rapida", score: "low", val: 25 },
-                    { label: "Molto eccitato ma ascolta", desc: "Arousal alto ma modulabile", score: "mid", val: 65 },
-                    { label: "Incontrollabile (salta, abbaia)", desc: "Sovraeccitazione e scarica motoria", score: "high", val: 95 }
+                    { label: "Festeggia con autocontrollo", desc: "Omeostasi rapida", val: 25 },
+                    { label: "Molto eccitato ma ascolta", desc: "Arousal alto ma modulabile", val: 65 },
+                    { label: "Incontrollabile (salta, abbaia)", desc: "Sovraeccitazione e scarica motoria", val: 95 }
                 ]
             }
         ];
@@ -1937,57 +2090,113 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
                 axis: "Axis 1: Stranger & Dog Reactivity",
                 title: "When meeting an unfamiliar dog on leash...",
                 options: [
-                    { label: "Calm / Indifferent", desc: "No postural tension", score: "low", val: 15 },
-                    { label: "Stiff tail / Direct stare", desc: "Moderate motor tension", score: "mid", val: 55 },
-                    { label: "Barks / Pulls forcefully", desc: "Reactivity and barrier frustration", score: "high", val: 85 }
+                    { label: "Calm / Indifferent", desc: "No postural tension", val: 15 },
+                    { label: "Stiff tail / Direct stare", desc: "Moderate motor tension", val: 55 },
+                    { label: "Barks / Pulls forcefully", desc: "Reactivity and barrier frustration", val: 85 }
                 ]
             },
             {
                 axis: "Axis 2: Separation Distress & Attachment",
                 title: "When picking up keys or preparing to leave home...",
                 options: [
-                    { label: "Stays settled in bed", desc: "Accepts separation calmly", score: "low", val: 20 },
-                    { label: "Follows everywhere & watches", desc: "Constant contact-seeking", score: "mid", val: 60 },
-                    { label: "Whines, pants or chews", desc: "Acute isolation panic", score: "high", val: 90 }
+                    { label: "Stays settled in bed", desc: "Accepts separation calmly", val: 20 },
+                    { label: "Follows everywhere & watches", desc: "Constant contact-seeking", val: 60 },
+                    { label: "Whines, pants or chews", desc: "Acute isolation panic", val: 90 }
                 ]
             },
             {
                 axis: "Axis 3: Touch Sensitivity & Non-Social Fear",
                 title: "During thunderstorms, fireworks or when touching paws...",
                 options: [
-                    { label: "No noticeable distress", desc: "Sensory resilience", score: "low", val: 15 },
-                    { label: "Ducks away or avoids touch", desc: "Avoidance and vigilance", score: "mid", val: 50 },
-                    { label: "Trembles, freezes or growls", desc: "Sympathetic stress & freezing", score: "high", val: 85 }
+                    { label: "No noticeable distress", desc: "Sensory resilience", val: 15 },
+                    { label: "Ducks away or avoids touch", desc: "Avoidance and vigilance", val: 50 },
+                    { label: "Trembles, freezes or growls", desc: "Sympathetic stress & freezing", val: 85 }
                 ]
             },
             {
                 axis: "Axis 4: Excitability & Impulse Control",
                 title: "When you return home or when seeing the walking harness...",
                 options: [
-                    { label: "Greets with self-control", desc: "Rapid homeostasis", score: "low", val: 25 },
-                    { label: "Excited but responsive", desc: "High arousal but modulable", score: "mid", val: 65 },
-                    { label: "Uncontrollable (jumps, barks)", desc: "Overarousal & motor rush", score: "high", val: 95 }
+                    { label: "Greets with self-control", desc: "Rapid homeostasis", val: 25 },
+                    { label: "Excited but responsive", desc: "High arousal but modulable", val: 65 },
+                    { label: "Uncontrollable (jumps, barks)", desc: "Overarousal & motor rush", val: 95 }
                 ]
             }
         ];
 
+        const CBARQ_PROFILES = {
+            it: {
+                reactivity: ["Profilo Reattivo-Territoriale con Bassa Soglia Hediger", "Predisposizione all'attivazione dei circuiti RAGE/FEAR in presenza di barriere fisiche e stimoli vicini."],
+                anxiety: ["Profilo ad Alto Attaccamento con Vulnerabilità all'Isolamento", "Iper-attivazione del circuito PANIC/GRIEF nei momenti di distacco."],
+                touch: ["Profilo ad Alta Sensibilità Tattile e Sonora", "Attivazione del circuito FEAR con stimoli improvvisi o manipolazioni."],
+                impulse: ["Profilo ad Alta Eccitabilità (SEEKING)", "Arousal elevato con difficoltà a tornare alla calma dopo l'eccitazione."],
+                mixed: ["Profilo Misto ad Alta Sensibilità Ambientale", "Vulnerabilità emotiva diffusa in situazioni di transizione."],
+                balanced: ["Profilo Equilibrato", "Nessuna vulnerabilità marcata sui 4 assi: continua a osservare i segnali di stress."]
+            },
+            en: {
+                reactivity: ["Reactive-Territorial Profile with Low Hediger Threshold", "RAGE/FEAR circuits triggered around barriers and nearby stimuli."],
+                anxiety: ["High Attachment & Isolation Distress Profile", "Over-activation of PANIC/GRIEF circuits during caregiver departure."],
+                touch: ["High Tactile & Sound Sensitivity Profile", "FEAR circuit activation with sudden stimuli or handling."],
+                impulse: ["High Excitability Profile (SEEKING)", "High arousal with difficulty settling after excitement."],
+                mixed: ["Mixed Environmental Sensitivity Profile", "Diffuse emotional vulnerability during transitions."],
+                balanced: ["Balanced Profile", "No marked vulnerability on the 4 axes: keep watching for stress signals."]
+            }
+        };
+
+        const CBARQ_TIPS = {
+            it: {
+                base: ["Avvicinati a curva (45°), mai frontalmente.", "Mantieni il guinzaglio morbido.", "Rispetta la sua distanza di sicurezza (Hediger)."],
+                reactivity: "Aumenta la distanza dagli altri cani prima che si irrigidisca, e premia lo sguardo verso di te.",
+                anxiety: "Allena uscite brevissime e neutre, senza saluti enfatici prima e dopo.",
+                touch: "Abbina ogni manipolazione a un premio e interrompi ai primi segnali di evitamento; valuta una visita veterinaria per escludere dolore.",
+                impulse: "Saluta solo quando ha 4 zampe a terra e proponi attività olfattive per scaricare l'arousal."
+            },
+            en: {
+                base: ["Approach in a curve (45°), never head-on.", "Keep the leash loose.", "Respect their safety distance (Hediger)."],
+                reactivity: "Increase distance from other dogs before they stiffen, and reward glances back at you.",
+                anxiety: "Practice very short, neutral departures without emotional greetings before and after.",
+                touch: "Pair every handling with a reward and stop at the first avoidance signal; consider a vet visit to rule out pain.",
+                impulse: "Greet only with 4 paws on the floor and offer sniffing games to lower arousal."
+            }
+        };
+
+        const CBARQ_STORAGE_KEY = 'biodog_cbarq_answers';
         let cbarqCurrentStep = 0;
         let cbarqAnswers = [];
+        let cbarqComputing = false;
 
-        function getCbarqDataset() {
-            return currentLang === 'en' ? CBARQ_DATA_EN : CBARQ_DATA_IT;
+        function getCbarqDataset() { return currentLang === 'en' ? CBARQ_DATA_EN : CBARQ_DATA_IT; }
+
+        function loadSavedCbarqAnswers() {
+            try {
+                const saved = JSON.parse(storageGet(CBARQ_STORAGE_KEY));
+                if (Array.isArray(saved) && saved.length === 4 && saved.every(i => Number.isInteger(i) && i >= 0 && i <= 2)) return saved;
+            } catch (e) {}
+            return null;
         }
 
-        function initCbarqWidget() {
-            const savedCbarq = localStorage.getItem('biodog_cbarq_results');
-            if (savedCbarq) {
-                try {
-                    const parsed = JSON.parse(savedCbarq);
-                    renderCbarqReport(parsed);
-                    return;
-                } catch(e) {}
-            }
-            renderCbarqQuestion(0);
+        function computeCbarqResults(answerIdx) {
+            const dataset = getCbarqDataset();
+            const [reactivity, anxiety, touch, impulse] = answerIdx.map((opt, axis) => dataset[axis].options[opt].val);
+            const scores = { reactivity, anxiety, touch, impulse };
+            const profiles = CBARQ_PROFILES[currentLang];
+            const tips = CBARQ_TIPS[currentLang];
+
+            const high = Object.entries(scores).filter(([, v]) => v >= 75).sort((a, b) => b[1] - a[1]);
+            let profileKey = 'balanced';
+            if (high.length === 1) profileKey = high[0][0];
+            else if (high.length > 1) profileKey = high[0][0] === 'reactivity' || high[0][0] === 'anxiety' ? high[0][0] : 'mixed';
+            else if (Object.values(scores).some(v => v >= 50)) profileKey = 'mixed';
+
+            const lines = [...tips.base, ...high.map(([k]) => tips[k])];
+            return { title: profiles[profileKey][0], subtitle: profiles[profileKey][1], tips: lines, scores };
+        }
+
+        function refreshCbarqWidget() {
+            if (cbarqComputing) return;
+            const saved = loadSavedCbarqAnswers();
+            if (saved) renderCbarqReport(saved);
+            else renderCbarqQuestion(cbarqCurrentStep);
         }
 
         function renderCbarqQuestion(stepIndex) {
@@ -1995,832 +2204,791 @@ src="https://www.facebook.com/tr?id=1397106102636268&ev=PageView&noscript=1"
             const dataset = getCbarqDataset();
             const q = dataset[stepIndex];
             if (!q) return;
-
-            const badge = document.getElementById('cbarqStepBadge');
-            const progressTxt = document.getElementById('cbarqProgressText');
-            const progressBar = document.getElementById('cbarqProgressBar');
-            const axisLbl = document.getElementById('cbarqAxisLabel');
-            const titleLbl = document.getElementById('cbarqQuestionTitle');
-            const grid = document.getElementById('cbarqOptionsGrid');
-
+            const t = T();
             const pct = Math.round(((stepIndex + 1) / dataset.length) * 100);
 
-            if (badge) badge.innerText = currentLang === 'en' ? `Question ${stepIndex + 1} / ${dataset.length}` : `Domanda ${stepIndex + 1} / ${dataset.length}`;
-            if (progressTxt) progressTxt.innerText = `${pct}% ${currentLang === 'en' ? 'completed' : 'completato'}`;
-            if (progressBar) progressBar.style.width = `${pct}%`;
-            if (axisLbl) axisLbl.innerText = q.axis;
-            if (titleLbl) titleLbl.innerText = q.title;
+            $('cbarqStepBadge').innerText = t.cbarqQuestion(stepIndex + 1, dataset.length);
+            $('cbarqProgressText').innerText = `${pct}% ${t.cbarqCompleted}`;
+            $('cbarqProgressBar').style.width = `${pct}%`;
+            $('cbarqAxisLabel').innerText = q.axis;
+            $('cbarqQuestionTitle').innerText = q.title;
+            $('cbarqOptionsGrid').innerHTML = q.options.map((opt, i) => `
+                <button type="button" onclick="handleCbarqOptionSelect(${i})" class="cbarq-opt-btn bg-white hover:bg-purple-50/80 p-3 rounded-2xl border border-slate-200/90 text-left space-y-1 shadow-xs group">
+                    <strong class="text-xs font-bold text-slate-800 block group-hover:text-purple-900 transition-colors">${esc(opt.label)}</strong>
+                    <span class="text-[10px] text-slate-400 block leading-tight">${esc(opt.desc)}</span>
+                </button>
+            `).join('');
 
-            if (grid) {
-                grid.innerHTML = q.options.map((opt, i) => `
-                    <button type="button" onclick="handleCbarqOptionSelect(${i})" class="cbarq-opt-btn bg-white hover:bg-purple-50/80 p-3 rounded-2xl border border-slate-200/90 text-left space-y-1 shadow-xs group">
-                        <strong class="text-xs font-bold text-slate-800 block group-hover:text-purple-900 transition-colors">
-                            ${opt.label}
-                        </strong>
-                        <span class="text-[10px] text-slate-400 block leading-tight">
-                            ${opt.desc}
-                        </span>
-                    </button>
-                `).join('');
-            }
-
-            document.getElementById('cbarqQuestionContainer')?.classList.remove('hidden');
-            document.getElementById('cbarqComputingState')?.classList.add('hidden');
-            document.getElementById('cbarqReportCard')?.classList.add('hidden');
+            show('cbarqQuestionContainer');
+            hide('cbarqComputingState');
+            hide('cbarqReportCard');
         }
 
         function handleCbarqOptionSelect(optionIndex) {
-            const dataset = getCbarqDataset();
-            const currentQ = dataset[cbarqCurrentStep];
-            const chosen = currentQ.options[optionIndex];
-            cbarqAnswers[cbarqCurrentStep] = chosen;
-
-            if (cbarqCurrentStep < dataset.length - 1) {
-                renderCbarqQuestion(cbarqCurrentStep + 1);
-            } else {
-                finishCbarqTest();
-            }
+            cbarqAnswers[cbarqCurrentStep] = optionIndex;
+            if (cbarqCurrentStep < getCbarqDataset().length - 1) renderCbarqQuestion(cbarqCurrentStep + 1);
+            else finishCbarqTest();
         }
 
         function finishCbarqTest() {
-            document.getElementById('cbarqQuestionContainer')?.classList.add('hidden');
-            document.getElementById('cbarqComputingState')?.classList.remove('hidden');
-
-            const reactivity = cbarqAnswers[0]?.val || 50;
-            const anxiety = cbarqAnswers[1]?.val || 50;
-            const touch = cbarqAnswers[2]?.val || 50;
-            const impulse = cbarqAnswers[3]?.val || 50;
-
-            let resultTitle = currentLang === 'en' ? "Environmental Sensitivity Profile" : "Profilo Misto ad Alta Sensibilità Ambientale";
-            let resultSub = currentLang === 'en' ? "Diffuse emotional vulnerability during spatial transitions." : "Vulnerabilità emotiva diffusa in situazioni di transizione.";
-            let protocol = currentLang === 'en' ? "1. Adopt a 45° curving approach.<br>2. Maintain a loose leash to prevent front barrier frustration.<br>3. Grant decompressive spatial distance." : "1. Adotta approccio a curva a 45°.<br>2. Mantieni il guinzaglio morbido.<br>3. Offri distanza di sicurezza di Hediger.";
-
-            if (reactivity >= 75) {
-                resultTitle = currentLang === 'en' ? "Reactive-Territorial Profile with Low Hediger Threshold" : "Profilo Reattivo-Territoriale con Bassa Soglia Hediger";
-                resultSub = currentLang === 'en' ? "Triggering of RAGE/FEAR circuits around barrier constraints." : "Predisposizione all'attivazione del circuito RAGE/FEAR in presenza di barriere fisiche.";
-            } else if (anxiety >= 75) {
-                resultTitle = currentLang === 'en' ? "High Attachment & Isolation Distress Profile" : "Profilo ad Alto Attaccamento con Vulnerabilità all'Isolamento";
-                resultSub = currentLang === 'en' ? "Over-activation of PANIC/GRIEF circuits during caregiver departure." : "Iper-attivazione del circuito PANIC/GRIEF nei momenti di distacco.";
-            }
-
-            const calculatedResults = {
-                title: resultTitle, subtitle: resultSub, protocol: protocol,
-                scores: { reactivity, anxiety, touch, impulse }
-            };
-
-            localStorage.setItem('biodog_cbarq_results', JSON.stringify(calculatedResults));
-
+            hide('cbarqQuestionContainer');
+            show('cbarqComputingState');
+            cbarqComputing = true;
+            storageSet(CBARQ_STORAGE_KEY, JSON.stringify(cbarqAnswers));
             setTimeout(() => {
-                document.getElementById('cbarqComputingState')?.classList.add('hidden');
-                renderCbarqReport(calculatedResults);
+                cbarqComputing = false;
+                renderCbarqReport(cbarqAnswers);
             }, 1200);
         }
 
-        function renderCbarqReport(results) {
-            const resTitle = document.getElementById('cbarqResultTitle');
-            const resSub = document.getElementById('cbarqResultSubtitle');
-            const protoText = document.getElementById('cbarqProtocolText');
-            const scR = document.getElementById('cbarqScoreReactivity');
-            const scA = document.getElementById('cbarqScoreAnxiety');
-            const scT = document.getElementById('cbarqScoreTouch');
-            const scI = document.getElementById('cbarqScoreImpulse');
+        function renderCbarqReport(answerIdx) {
+            const t = T();
+            const results = computeCbarqResults(answerIdx);
+            $('cbarqStepBadge').innerText = t.cbarqDone;
+            $('cbarqResultTitle').innerText = results.title;
+            $('cbarqResultSubtitle').innerText = results.subtitle;
+            $('cbarqProtocolText').innerHTML = results.tips.map((line, i) => `${i + 1}. ${esc(line)}`).join('<br>');
+            $('cbarqScoreReactivity').innerText = `${results.scores.reactivity}%`;
+            $('cbarqScoreAnxiety').innerText = `${results.scores.anxiety}%`;
+            $('cbarqScoreTouch').innerText = `${results.scores.touch}%`;
+            $('cbarqScoreImpulse').innerText = `${results.scores.impulse}%`;
 
-            if (resTitle) resTitle.innerText = results.title;
-            if (resSub) resSub.innerText = results.subtitle;
-            if (protoText) protoText.innerHTML = results.protocol;
-            if (scR) scR.innerText = `${results.scores.reactivity}%`;
-            if (scA) scA.innerText = `${results.scores.anxiety}%`;
-            if (scT) scT.innerText = `${results.scores.touch}%`;
-            if (scI) scI.innerText = `${results.scores.impulse}%`;
-
-            document.getElementById('cbarqQuestionContainer')?.classList.add('hidden');
-            document.getElementById('cbarqComputingState')?.classList.add('hidden');
-            document.getElementById('cbarqReportCard')?.classList.remove('hidden');
-
+            hide('cbarqQuestionContainer');
+            hide('cbarqComputingState');
+            show('cbarqReportCard');
             updateCbarqLockState();
         }
 
         function updateCbarqLockState() {
-            const protoContent = document.getElementById('cbarqProtocolContent');
-            const lockOverlay = document.getElementById('cbarqLockOverlay');
-            if (currentUser) {
-                protoContent?.classList.remove('blur-content');
-                lockOverlay?.classList.add('hidden');
-            } else {
-                protoContent?.classList.add('blur-content');
-                lockOverlay?.classList.remove('hidden');
-            }
+            $('cbarqProtocolContent')?.classList.toggle('blur-content', !currentUser);
+            $('cbarqLockOverlay')?.classList.toggle('hidden', !!currentUser);
         }
 
         function restartCbarqTest() {
-            localStorage.removeItem('biodog_cbarq_results');
+            storageRemove(CBARQ_STORAGE_KEY);
             cbarqAnswers = [];
             renderCbarqQuestion(0);
         }
 
-        function pinCbarqToHistory() {
-            if (!currentUser) {
-                openAuthModal(true, currentLang === 'en' ? "📋 <strong>Sign up free</strong> to save the C-BARQ report in your dog's Logbook!" : "📋 <strong>Registrati gratis</strong> per salvare il referto C-BARQ nel Diario Clinico del tuo cane!");
-                return;
+        async function pinCbarqToHistory() {
+            const t = T();
+            if (!currentUser) { openAuthModal(true, t.msgCbarqLogin); return; }
+            const saved = loadSavedCbarqAnswers();
+            if (!saved) return;
+            const r = computeCbarqResults(saved);
+            const ok = await saveToHistory(`[Test] ${r.title}`, {
+                situation_title: r.title,
+                panksepp: "TEST",
+                panksepp_label: r.subtitle,
+                arousal: r.scores.impulse,
+                valence: 0,
+                thought: `${t.scoreReactivity} ${r.scores.reactivity}% • ${t.scoreAnxiety} ${r.scores.anxiety}% • ${t.scoreTouch} ${r.scores.touch}% • ${t.scoreImpulse} ${r.scores.impulse}%`,
+                sensory: { smell: "", sight: "", hearing: "", touch: "" },
+                human_body_language: { voice: "", posture: "" },
+                explanation: r.subtitle,
+                steps: r.tips,
+                forbidden: []
+            });
+            const label = $('txtBtnPinCbarq');
+            if (ok && label) {
+                label.innerText = t.btnPinCbarqDone;
+                setTimeout(() => { label.innerText = T().btnPinCbarq; }, 3500);
             }
-            const savedCbarq = localStorage.getItem('biodog_cbarq_results');
-            if (!savedCbarq) return;
-
-            try {
-                const parsed = JSON.parse(savedCbarq);
-                saveToHistory(`[C-BARQ] ${parsed.title}`, {
-                    situation_title: parsed.title,
-                    panksepp: "DIAGNOSTICA C-BARQ",
-                    panksepp_label: parsed.subtitle,
-                    arousal: parsed.scores.reactivity || 50,
-                    valence: 0,
-                    thought: `C-BARQ profile: R${parsed.scores.reactivity}%, A${parsed.scores.anxiety}%, T${parsed.scores.touch}%, I${parsed.scores.impulse}%.`,
-                    sensory: { smell: "-", sight: "-", hearing: "-", touch: "-" },
-                    human_body_language: { voice: "Calm", posture: "Curving" },
-                    explanation: parsed.subtitle,
-                    steps: ["Review protocol in logbook"],
-                    forbidden: ["Avoid punishment"]
-                });
-                const btn = document.getElementById('btnPinCbarq');
-                if (btn) {
-                    btn.innerHTML = `<i class="fa-solid fa-check text-emerald-600"></i> ${currentLang === 'en' ? 'Saved!' : 'Salvato!'}`;
-                    setTimeout(() => {
-                        btn.innerHTML = `<i class="fa-solid fa-bookmark text-purple-600"></i> ${currentLang === 'en' ? 'Save to Logbook' : 'Salva nel Diario'}`;
-                    }, 3500);
-                }
-            } catch(e) {}
         }
 
         function toggleCbarqWidget() {
-            const body = document.getElementById('cbarqBody');
-            const icon = document.getElementById('cbarqToggleIcon');
-            const isHidden = body.classList.contains('hidden');
-            if (isHidden) {
-                body.classList.remove('hidden');
-                icon.className = "fa-solid fa-chevron-up";
-            } else {
-                body.classList.add('hidden');
-                icon.className = "fa-solid fa-chevron-down";
-            }
+            const body = $('cbarqBody');
+            const isHidden = body.classList.toggle('hidden');
+            $('cbarqToggleIcon').className = isHidden ? "fa-solid fa-chevron-down" : "fa-solid fa-chevron-up";
         }
 
         // ==================== DAILY MOOD & STREAK ====================
-        function getTodayString() {
-            const d = new Date();
+        const MOOD_COLORS = { calm: 'bg-emerald-500', reactive: 'bg-amber-500', anxious: 'bg-blue-500', hyper: 'bg-purple-500' };
+
+        function dateKey(d) {
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
+        function getTodayString() { return dateKey(new Date()); }
+        function daysAgo(n) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return d; }
 
-        function initDailyMoodUI() {
-            const moodContainer = document.getElementById('dailyMoodContainer');
-            if (!currentUser) {
-                moodContainer?.classList.add('hidden');
-                return;
-            }
-            moodContainer?.classList.remove('hidden');
+        function computeStreak() {
+            // Giorni consecutivi con check-in, fino a oggi (o fino a ieri se oggi manca ancora).
+            let start = moodByDay[getTodayString()] ? 0 : 1;
+            let streak = 0;
+            while (moodByDay[dateKey(daysAgo(start + streak))]) streak++;
+            return streak;
         }
 
-        function recordDailyMood(moodKey) {
-            if (!currentUser) return;
-            const statusFeedback = document.getElementById('moodStatusFeedback');
-            const feedbackText = document.getElementById('moodFeedbackText');
-            if (statusFeedback) {
-                statusFeedback.classList.remove('hidden');
-                if (feedbackText) feedbackText.innerHTML = currentLang === 'en' ? `Recorded for today! Streak increased 🔥` : `Umore registrato per oggi! Streak incrementato 🔥`;
+        async function loadMoods() {
+            moodByDay = {};
+            if (!currentUser || !supabaseClient) { renderMoodUI(); return; }
+            const since = dateKey(daysAgo(60));
+            const { data, error } = await supabaseClient.from('mood_checkins')
+                .select('day, mood').eq('user_id', currentUser.id).gte('day', since);
+            if (!error && data) data.forEach(r => { moodByDay[r.day] = r.mood; });
+            renderMoodUI();
+        }
+
+        function renderMoodUI() {
+            const container = $('dailyMoodContainer');
+            if (!currentUser) { container?.classList.add('hidden'); hide('headerStreakBadge'); return; }
+            container?.classList.remove('hidden');
+
+            const todayMood = moodByDay[getTodayString()];
+            ['calm', 'reactive', 'anxious', 'hyper'].forEach(m => $(`moodBtn_${m}`)?.classList.toggle('mood-btn-selected', m === todayMood));
+
+            const streak = computeStreak();
+            $('streakDaysCount').innerText = streak;
+            $('headerStreakCount').innerText = streak;
+            $('headerStreakBadge')?.classList.toggle('hidden', streak === 0);
+
+            const days = T().weekdaysShort;
+            const row = $('weeklyHeatmapRow');
+            if (row) {
+                row.innerHTML = [6, 5, 4, 3, 2, 1, 0].map(n => {
+                    const d = daysAgo(n);
+                    const mood = moodByDay[dateKey(d)];
+                    const color = mood ? MOOD_COLORS[mood] : 'bg-slate-200';
+                    return `<div class="flex flex-col items-center gap-0.5" title="${esc(dateKey(d))}">
+                        <span class="w-5 h-5 rounded-md ${color} ${n === 0 ? 'ring-2 ring-offset-1 ring-slate-300' : ''}"></span>
+                        <span class="text-[9px] text-slate-400 font-bold">${esc(days[d.getDay()])}</span>
+                    </div>`;
+                }).join('');
             }
+        }
+
+        async function recordDailyMood(moodKey) {
+            if (!currentUser || !supabaseClient) return;
+            const t = T();
+            const today = getTodayString();
+            const wasRecorded = !!moodByDay[today];
+            const previous = moodByDay[today];
+            moodByDay[today] = moodKey;
+            renderMoodUI();
+
+            const { error } = await supabaseClient.from('mood_checkins')
+                .upsert({ user_id: currentUser.id, day: today, mood: moodKey, updated_at: new Date().toISOString() }, { onConflict: 'user_id,day' });
+            const feedbackText = $('moodFeedbackText');
+            if (error) {
+                if (previous) moodByDay[today] = previous; else delete moodByDay[today];
+                renderMoodUI();
+                if (feedbackText) feedbackText.innerText = t.moodSaveError;
+            } else if (feedbackText) {
+                feedbackText.innerText = wasRecorded ? t.moodUpdated : t.moodSaved;
+            }
+            show('moodStatusFeedback');
         }
 
         // ==================== INIZIALIZZAZIONE ====================
         window.onload = () => {
-            applyLanguageUI();
             loadSavedMorphology();
-            updateMorphologyUI();
+            applyLanguageUI();
+            initCookieConsent();
             initAuth();
-            initLiveUserCounter();
-            initCbarqWidget();
             checkInAppBrowser();
         };
-
-        let currentOnlineCount = 38;
-        function initLiveUserCounter() {
-            const counterEl = document.getElementById('liveUserCounter');
-            if (!counterEl) return;
-            counterEl.innerText = `${currentOnlineCount} ${currentLang === 'en' ? 'owners' : 'proprietari'}`;
-            setInterval(() => {
-                const delta = Math.floor(Math.random() * 5) - 2;
-                currentOnlineCount = Math.max(25, Math.min(65, currentOnlineCount + delta));
-                counterEl.innerText = `${currentOnlineCount} ${currentLang === 'en' ? 'owners' : 'proprietari'}`;
-            }, 18000);
-        }
 
         async function initAuth() {
             if (!supabaseClient) return;
             const { data: { session } } = await supabaseClient.auth.getSession();
             await updateAuthUI(session);
-            supabaseClient.auth.onAuthStateChange(async (_e, session) => await updateAuthUI(session));
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                // Il token rinnovato non cambia l'utente: niente ricarica completa.
+                if (event === 'TOKEN_REFRESHED') return;
+                if ((session?.user?.id || null) === (currentUser?.id || null) && event !== 'SIGNED_OUT') return;
+                updateAuthUI(session);
+            });
             checkStripeRedirect();
         }
 
         async function updateAuthUI(session) {
             currentUser = session?.user || null;
-            // Reset di sicurezza per evitare che nuove email ereditino sessioni PRO precedenti in memoria
             isUserPremium = false;
             userPlanTier = null;
-            stripeCustomerId = null;
+            usageInfo = null;
 
-            const loginBtn = document.getElementById('loginBtn');
-            const profile = document.getElementById('userProfile');
-            const heroBadge = document.getElementById('trialBadgeHero');
+            $('loginBtn')?.classList.toggle('hidden', !!currentUser);
+            $('userProfile')?.classList.toggle('hidden', !currentUser);
 
             if (currentUser) {
-                loginBtn?.classList.add('hidden');
-                profile?.classList.remove('hidden');
-                if (heroBadge) heroBadge.innerHTML = `<span>🎁</span> <span>${I18N[currentLang].trialBadgeLoggedIn}</span>`;
-                await checkSubscriptionStatus();
-                removeBlurFromResult();
-                updateCbarqLockState();
-                initDailyMoodUI();
+                closeAuthModal();
+                const pending = storageGet('biodog_pending_query');
+                const input = $('queryInput');
+                if (pending && input && !input.value) input.value = pending;
+                storageRemove('biodog_pending_query');
+                await Promise.all([refreshUsage(), loadHistory(), loadMoods()]);
             } else {
-                loginBtn?.classList.remove('hidden');
-                profile?.classList.add('hidden');
-                if (heroBadge) {
-                    heroBadge.innerHTML = `<span>🎁</span> <span>${I18N[currentLang].trialBadge}</span>`;
-                    heroBadge.classList.remove('hidden');
-                }
-                isUserPremium = false;
-                userPlanTier = null;
-                stripeCustomerId = null;
-                updateCbarqLockState();
-                initDailyMoodUI();
-            }
-            updatePremiumBadgeUI();
-            updateMorphologyGatingUI();
-        }
-
-        async function checkSubscriptionStatus() {
-            // Reset categorico iniziale
-            isUserPremium = false;
-            userPlanTier = null;
-            stripeCustomerId = null;
-
-            if (!supabaseClient || !currentUser) {
+                historyItems = [];
+                moodByDay = {};
+                renderMoodUI();
                 updatePremiumBadgeUI();
-                updateMorphologyGatingUI();
-                return;
             }
-            try {
-                const { data } = await supabaseClient.from('user_subscriptions')
-                    .select('is_active, plan_tier, stripe_customer_id')
-                    .eq('user_id', currentUser.id)
-                    .maybeSingle();
+            updateCbarqLockState();
+            updateMorphologyGatingUI();
+            updateHistoryBadge();
+            updateTrialBadge();
+        }
 
-                if (data && data.is_active === true) {
-                    isUserPremium = true;
-                    userPlanTier = data.plan_tier || 'premium';
-                    stripeCustomerId = data.stripe_customer_id;
-                } else {
-                    isUserPremium = false;
-                    userPlanTier = null;
-                    stripeCustomerId = null;
-                }
-            } catch (e) {
-                isUserPremium = false;
-                userPlanTier = null;
-                stripeCustomerId = null;
+        // Stato dell'abbonamento e quote: la fonte di verità è il backend.
+        async function refreshUsage() {
+            if (!currentUser) return;
+            try {
+                usageInfo = await apiFetch('/api/v1/me', { timeoutMs: 60000 });
+                userPlanTier = usageInfo.tier === 'free' ? null : usageInfo.tier;
+                isUserPremium = !!userPlanTier;
+            } catch (err) {
+                if (err.code === 'invalid_session') { await supabaseClient.auth.signOut(); return; }
+                // Backend non raggiungibile: ripiega sulla lettura (solo visuale) da Supabase.
+                try {
+                    const { data } = await supabaseClient.from('user_subscriptions')
+                        .select('is_active, plan_tier').eq('user_id', currentUser.id).maybeSingle();
+                    userPlanTier = data?.is_active === true ? (data.plan_tier || 'premium') : null;
+                    isUserPremium = !!userPlanTier;
+                } catch (e) {}
             }
             updatePremiumBadgeUI();
             updateMorphologyGatingUI();
+            updateTrialBadge();
         }
 
-        // Calcolo robusto delle traduzioni effettuate dall'utente
-        function getUserSearchesDone() {
-            if (!currentUser) return 0;
-            const byId = parseInt(localStorage.getItem(`biodog_user_searches_${currentUser.id}`) || "0");
-            const byEmail = currentUser.email ? parseInt(localStorage.getItem(`biodog_user_searches_${currentUser.email}`) || "0") : 0;
-            const byHistory = getUserHistory().length;
-            return Math.max(byId, byEmail, byHistory);
-        }
-
-        function recordUserSearch() {
-            if (!currentUser) return;
-            const nextCount = (getUserSearchesDone() + 1).toString();
-            localStorage.setItem(`biodog_user_searches_${currentUser.id}`, nextCount);
-            if (currentUser.email) {
-                localStorage.setItem(`biodog_user_searches_${currentUser.email}`, nextCount);
+        function updateTrialBadge() {
+            const t = T();
+            const badge = $('trialBadgeHero');
+            const text = $('txtTrialBadge');
+            if (!badge || !text) return;
+            let html = null;
+            if (!currentUser) html = t.trialBadge;
+            else if (usageInfo) {
+                if (usageInfo.tier === 'free') {
+                    if (usageInfo.remaining > 0) html = t.trialRemaining(usageInfo.remaining);
+                    else html = usageInfo.sunday_token_available ? t.trialSunday : t.trialExhausted;
+                } else if (usageInfo.tier === 'premium') {
+                    html = t.premiumRemaining(usageInfo.remaining);
+                }
             }
+            if (html) { text.innerHTML = html; badge.classList.remove('hidden'); }
+            else badge.classList.add('hidden');
         }
 
         function updatePremiumBadgeUI() {
-            const btnUpgrade = document.getElementById('btnUpgradeHeader');
-            const badgePremium = document.getElementById('badgePremiumActive');
-            const badgeStandard = document.getElementById('badgeStandardActive');
-            const badgePro = document.getElementById('badgeProActive');
-            const btnManageSub = document.getElementById('btnManageSub');
-            const heroBadge = document.getElementById('trialBadgeHero');
-
-            if (isUserPremium) {
-                btnUpgrade?.classList.add('hidden');
-                if (userPlanTier === 'pro') badgePro?.classList.remove('hidden');
-                else if (userPlanTier === 'standard') badgeStandard?.classList.remove('hidden');
-                else badgePremium?.classList.remove('hidden');
-                
-                // Il tasto "Abbonamento" è sempre visibile per tutti gli abbonati attivi
-                btnManageSub?.classList.remove('hidden');
-                btnManageSub?.classList.add('flex');
-
-                // ==================== NASCONDI BADGE PROVA PER ABBONATI ====================
-                heroBadge?.classList.add('hidden');
-            } else {
-                btnUpgrade?.classList.remove('hidden');
-                badgePremium?.classList.add('hidden');
-                badgeStandard?.classList.add('hidden');
-                badgePro?.classList.add('hidden');
-                btnManageSub?.classList.add('hidden');
-                btnManageSub?.classList.remove('flex');
-
-                // ==================== MOSTRA BADGE PROVA PER NON ABBONATI ====================
-                heroBadge?.classList.remove('hidden');
-            }
+            $('btnUpgradeHeader')?.classList.toggle('hidden', isUserPremium);
+            $('badgePremiumActive')?.classList.toggle('hidden', userPlanTier !== 'premium');
+            $('badgeStandardActive')?.classList.toggle('hidden', userPlanTier !== 'standard');
+            $('badgeProActive')?.classList.toggle('hidden', userPlanTier !== 'pro');
+            const manage = $('btnManageSub');
+            const canManage = isUserPremium || !!usageInfo?.has_customer;
+            manage?.classList.toggle('hidden', !canManage);
+            manage?.classList.toggle('flex', canManage);
         }
 
         // Gestione apertura Customer Portal Stripe per gestire o cancellare l'abbonamento
         async function openStripePortal() {
-            if (!currentUser) {
-                openAuthModal(true, currentLang === 'en' ? "Please sign in to manage your subscription" : "Accedi al tuo account per gestire l'abbonamento");
-                return;
-            }
-
-            // Se non abbiamo ancora in cache il customer ID Stripe, verifichiamo su Supabase
-            if (!stripeCustomerId && supabaseClient) {
-                try {
-                    const { data } = await supabaseClient.from('user_subscriptions')
-                        .select('stripe_customer_id')
-                        .eq('user_id', currentUser.id)
-                        .maybeSingle();
-                    if (data && data.stripe_customer_id) {
-                        stripeCustomerId = data.stripe_customer_id;
-                    }
-                } catch (e) {}
-            }
-
-            if (!stripeCustomerId) {
-                openPaywallModal(currentLang === 'en' ? "No active Stripe customer found. Select your plan below:" : "Nessun abbonamento Stripe collegato. Scegli il tuo piano qui sotto:");
-                return;
-            }
-
-            const btn = document.getElementById('btnManageSub');
+            const t = T();
+            if (!currentUser) { openAuthModal(true, esc(t.msgPortalLogin)); return; }
+            const btn = $('btnManageSub');
             const originalContent = btn ? btn.innerHTML : '';
             if (btn) btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-
             try {
-                const response = await fetch(`${BACKEND_API_BASE}/api/v1/stripe/create-portal-session`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customer_id: stripeCustomerId })
-                });
-
-                if (!response.ok) throw new Error("Portal API error");
-                const data = await response.json();
-                if (data.portal_url) {
-                    window.location.href = data.portal_url;
-                } else {
-                    openPaywallModal();
-                }
+                const data = await apiFetch('/api/v1/stripe/create-portal-session', { method: 'POST', timeoutMs: 60000 });
+                if (data?.portal_url) window.location.href = data.portal_url;
             } catch (err) {
-                console.error("Errore apertura portale Stripe:", err);
-                openPaywallModal();
+                if (err.code === 'no_customer') openPaywallModal(esc(t.msgNoCustomer));
+                else if (err.code === 'invalid_session') handleApiError(err);
+                else showError(t.errPortal);
             } finally {
                 if (btn) btn.innerHTML = originalContent;
             }
         }
 
-        function updateMorphologyGatingUI() {
-            const badgeEl = document.getElementById('morphTierBadge');
-            const actionLabel = document.getElementById('morphActionLabel');
-            if (userPlanTier === 'pro') {
-                if (badgeEl) badgeEl.innerText = currentLang === 'en' ? "PRO ACTIVE" : "PRO ATTIVO";
-                if (actionLabel) actionLabel.innerText = I18N[currentLang].morphActionConfig;
-            } else {
-                if (badgeEl) badgeEl.innerText = "PRO";
-                if (actionLabel) actionLabel.innerText = I18N[currentLang].morphActionUnlock;
-            }
-        }
-
         function checkStripeRedirect() {
             const params = new URLSearchParams(window.location.search);
-            if (params.get('payment') === 'success') {
-                document.getElementById('stripeSuccessBanner')?.classList.remove('hidden');
-                window.history.replaceState({}, document.title, window.location.pathname);
-                setTimeout(checkSubscriptionStatus, 1500);
-            }
+            if (params.get('payment') !== 'success') return;
+            window.history.replaceState({}, document.title, window.location.pathname);
+            const banner = $('txtStripeSuccess');
+            if (banner) banner.innerHTML = T().stripeSuccess;
+            show('stripeSuccessBanner');
+
+            // Il webhook di Stripe può arrivare qualche secondo dopo il redirect.
+            let attempts = 0;
+            const poll = async () => {
+                attempts++;
+                await refreshUsage();
+                if (isUserPremium) { if (banner) banner.innerHTML = T().stripeActive; return; }
+                if (attempts < 8) setTimeout(poll, 2500);
+                else if (banner) banner.innerText = T().stripePending;
+            };
+            setTimeout(poll, 1500);
         }
-        function dismissStripeBanner() { document.getElementById('stripeSuccessBanner')?.classList.add('hidden'); }
+        function dismissStripeBanner() { hide('stripeSuccessBanner'); }
 
         // ==================== CONFIGURATORE MORFOLOGICO ====================
+        const dogMorphology = { snout: "normal", ears: "prick", size: "medium", tail: "long" };
+        const MORPH_OPTIONS = { snout: ['flat', 'normal', 'long'], ears: ['prick', 'drop'], size: ['small', 'medium', 'large'], tail: ['long', 'curled', 'short'] };
+        const MORPH_PRESETS = {
+            brachy: { snout: 'flat', ears: 'drop', size: 'small', tail: 'curled' },
+            meso: { snout: 'normal', ears: 'drop', size: 'medium', tail: 'long' },
+            pastore: { snout: 'long', ears: 'prick', size: 'large', tail: 'long' },
+            spitz: { snout: 'normal', ears: 'prick', size: 'medium', tail: 'curled' }
+        };
+
+        function updateMorphologyGatingUI() {
+            const t = T();
+            const badgeEl = $('morphTierBadge');
+            const actionLabel = $('morphActionLabel');
+            const isPro = userPlanTier === 'pro';
+            if (badgeEl) badgeEl.innerText = isPro ? t.morphProActive : "PRO";
+            if (actionLabel) actionLabel.innerText = isPro ? t.morphActionConfig : t.morphActionUnlock;
+            if (!isPro) {
+                hide('morphologyDrawer');
+                const icon = $('morphDrawerIcon');
+                if (icon) icon.className = "fa-solid fa-chevron-down text-slate-400 group-hover:text-slate-600 transition-transform";
+            }
+        }
+
         function handleMorphologyClick() {
-            if (!currentUser) {
-                openAuthModal(true, currentLang === 'en' ? "🧬 <strong>Morphological calibration is reserved for BioDog Vision PRO!</strong><br>Sign in or register to calibrate the AI to your dog's anatomy." : "🧬 <strong>Il Configuratore Morfologico è riservato a BioDog Vision PRO!</strong><br>Accedi o registrati per calibrare l'IA sull'anatomia del tuo cane.");
-                return;
-            }
-            if (userPlanTier !== 'pro') {
-                openPaywallModal(currentLang === 'en' ? "🧬 <strong>Upgrade to BioDog Vision PRO (3.99 €/mo)</strong> to calibrate vision, olfactory turbinates and distance awareness based on breed!" : "🧬 <strong>Passa a BioDog Vision PRO (3,99 €/m)</strong> per calibrare vista, olfatto e distanze in base alla razza!");
-                return;
-            }
+            const t = T();
+            if (!currentUser) { openAuthModal(true, t.msgMorphGuest); return; }
+            if (userPlanTier !== 'pro') { openPaywallModal(t.msgMorphPro); return; }
             toggleMorphologyDrawer();
         }
 
         function toggleMorphologyDrawer() {
-            const drawer = document.getElementById('morphologyDrawer');
-            const icon = document.getElementById('morphDrawerIcon');
-            const isHidden = drawer.classList.contains('hidden');
-            if (isHidden) {
-                drawer.classList.remove('hidden');
-                icon.className = "fa-solid fa-chevron-up text-slate-600 transition-transform";
-            } else {
-                drawer.classList.add('hidden');
-                icon.className = "fa-solid fa-chevron-down text-slate-400 transition-transform";
-            }
+            const isHidden = $('morphologyDrawer').classList.toggle('hidden');
+            $('morphDrawerIcon').className = isHidden
+                ? "fa-solid fa-chevron-down text-slate-400 transition-transform"
+                : "fa-solid fa-chevron-up text-slate-600 transition-transform";
         }
 
         function applyMorphPreset(preset) {
-            if (preset === 'brachy') { dogMorphology.snout = 'flat'; dogMorphology.ears = 'drop'; dogMorphology.size = 'small'; dogMorphology.tail = 'curled'; }
-            else if (preset === 'meso') { dogMorphology.snout = 'normal'; dogMorphology.ears = 'drop'; dogMorphology.size = 'medium'; dogMorphology.tail = 'long'; }
-            else if (preset === 'pastore') { dogMorphology.snout = 'long'; dogMorphology.ears = 'prick'; dogMorphology.size = 'large'; dogMorphology.tail = 'long'; }
-            else if (preset === 'spitz') { dogMorphology.snout = 'normal'; dogMorphology.ears = 'prick'; dogMorphology.size = 'medium'; dogMorphology.tail = 'curled'; }
+            if (!MORPH_PRESETS[preset]) return;
+            Object.assign(dogMorphology, MORPH_PRESETS[preset]);
             saveMorphology();
             updateMorphologyUI();
         }
 
-        function setSnout(v) { dogMorphology.snout = v; saveMorphology(); updateMorphologyUI(); }
-        function setEars(v) { dogMorphology.ears = v; saveMorphology(); updateMorphologyUI(); }
-        function setSize(v) { dogMorphology.size = v; saveMorphology(); updateMorphologyUI(); }
-        function setTail(v) { dogMorphology.tail = v; saveMorphology(); updateMorphologyUI(); }
+        function setMorph(key, value) {
+            if (!MORPH_OPTIONS[key].includes(value)) return;
+            dogMorphology[key] = value;
+            saveMorphology();
+            updateMorphologyUI();
+        }
+        function setSnout(v) { setMorph('snout', v); }
+        function setEars(v) { setMorph('ears', v); }
+        function setSize(v) { setMorph('size', v); }
+        function setTail(v) { setMorph('tail', v); }
 
-        function saveMorphology() { localStorage.setItem('biodog_home_morphology', JSON.stringify(dogMorphology)); }
+        function saveMorphology() { storageSet('biodog_home_morphology', JSON.stringify(dogMorphology)); }
         function loadSavedMorphology() {
             try {
-                const s = JSON.parse(localStorage.getItem('biodog_home_morphology'));
-                if (s) { dogMorphology.snout = s.snout || "normal"; dogMorphology.ears = s.ears || "prick"; dogMorphology.size = s.size || "medium"; dogMorphology.tail = s.tail || "long"; }
-            } catch(e) {}
+                const s = JSON.parse(storageGet('biodog_home_morphology'));
+                if (s) for (const key of Object.keys(MORPH_OPTIONS)) if (MORPH_OPTIONS[key].includes(s[key])) dogMorphology[key] = s[key];
+            } catch (e) {}
+        }
+
+        function morphologyDescription() {
+            const n = T().morphNames;
+            const eye = { small: 25, medium: 45, large: 75 }[dogMorphology.size];
+            return `${n.snout[dogMorphology.snout]} • ${n.ears[dogMorphology.ears]} • ${n.size[dogMorphology.size]} (${eye} cm) • ${n.tail[dogMorphology.tail]}`;
         }
 
         function updateMorphologyUI() {
-            const turbinates = dogMorphology.snout === "long" ? "170 cm²" : (dogMorphology.snout === "flat" ? "45 cm²" : "100 cm²");
-            const fov = dogMorphology.snout === "long" ? "270°" : (dogMorphology.snout === "flat" ? "220°" : "250°");
-            const eyeHeight = dogMorphology.size === "small" ? "25 cm" : (dogMorphology.size === "large" ? "75 cm" : "45 cm");
-            const snoutLbl = document.getElementById('labelSnoutStats');
-            if (snoutLbl) snoutLbl.innerText = `${turbinates} • ${fov}`;
-            const sizeLbl = document.getElementById('labelSizeStats');
-            if (sizeLbl) sizeLbl.innerText = `${currentLang === 'en' ? 'Height' : 'Altezza'}: ${eyeHeight}`;
+            const t = T();
+            for (const [key, values] of Object.entries(MORPH_OPTIONS)) {
+                const prefix = { snout: 'btnSnout_', ears: 'btnEars_', size: 'btnSize_', tail: 'btnTail_' }[key];
+                values.forEach(v => {
+                    const btn = $(prefix + v);
+                    btn?.classList.toggle('morph-pill-active', dogMorphology[key] === v);
+                    btn?.classList.toggle('morph-pill-inactive', dogMorphology[key] !== v);
+                });
+            }
+            for (const [name, preset] of Object.entries(MORPH_PRESETS)) {
+                const active = Object.keys(preset).every(k => preset[k] === dogMorphology[k]);
+                $(`preset_${name}`)?.classList.toggle('preset-btn-active', active);
+                $(`preset_${name}`)?.classList.toggle('preset-btn-inactive', !active);
+            }
+
+            const turbinates = { long: 170, flat: 45, normal: 100 }[dogMorphology.snout];
+            const fov = { long: 270, flat: 220, normal: 250 }[dogMorphology.snout];
+            const eyeHeight = { small: 25, medium: 45, large: 75 }[dogMorphology.size];
+
+            $('labelSnoutStats').innerText = `${turbinates} cm² • ${fov}°`;
+            $('labelEarStats').innerText = t.earStats[dogMorphology.ears];
+            $('labelSizeStats').innerText = `${t.heightLabel}: ${eyeHeight} cm`;
+            $('labelTailStats').innerText = t.tailStats[dogMorphology.tail];
+            $('morphSummaryText').innerText = morphologyDescription();
+            $('liveBiometricSummary').innerText =
+                `${turbinates} cm² ${t.smellUnit} • ${fov}° ${t.fovUnit} • ${eyeHeight} cm ${t.heightUnit} • ${t.morphNames.tail[dogMorphology.tail]}`;
         }
 
         // ==================== COMPUTER VISION VIDEO ====================
         function triggerVideoAction(type) {
             if (!currentUser) { openGuestVideoModal(); return; }
-            if (userPlanTier !== 'pro') {
-                openPaywallModal(currentLang === 'en' ? "🎥 <strong>Upgrade to Vision PRO (3.99 €/mo)</strong> to upload or record videos with AI Vision!" : "🎥 <strong>Passa a Vision PRO (3,99 €/m)</strong> per registrare o caricare filmati con la Visione Artificiale!");
-                return;
-            }
-            if (type === 'cam') document.getElementById('videoCamInput')?.click();
-            else document.getElementById('videoFileInput')?.click();
+            if (userPlanTier !== 'pro') { openPaywallModal(T().msgVideoPro); return; }
+            $(type === 'cam' ? 'videoCamInput' : 'videoFileInput')?.click();
         }
 
-        function openGuestVideoModal() { document.getElementById('guestVideoModal')?.classList.remove('hidden'); }
-        function closeGuestVideoModal() { document.getElementById('guestVideoModal')?.classList.add('hidden'); }
+        function openGuestVideoModal() { show('guestVideoModal'); }
+        function closeGuestVideoModal() { hide('guestVideoModal'); }
         function focusQueryInputFromVideoModal() {
             closeGuestVideoModal();
-            const input = document.getElementById('queryInput');
+            const input = $('queryInput');
             if (input) { input.focus(); input.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
         }
 
-        async function handleVideoInput(event) {
+        function handleVideoInput(event) {
             const file = event.target.files[0];
+            event.target.value = '';  // consente di riselezionare lo stesso file
             if (!file) return;
-            if (file.size > 25 * 1024 * 1024) {
-                const loadingSub = document.getElementById('loadingIndicatorSub');
-                if (loadingSub) {
-                    loadingSub.innerText = currentLang === 'en' ? "Video exceeds 25MB max size. Please pick a shorter clip!" : "Il filmato supera i 25MB. Carica una clip più breve!";
-                }
-                return;
-            }
+            hideError();
+            if (file.size > MAX_VIDEO_BYTES) { showError(T().errVideoTooLarge); return; }
+            if (file.type && !ALLOWED_VIDEO_TYPES.includes(file.type)) { showError(T().errVideoType); return; }
             runVideoTranslation(file);
         }
 
-        async function runVideoTranslation(file) {
-            const query = document.getElementById('queryInput').value.trim();
-            const resultBox = document.getElementById('resultContainer');
-            const loading = document.getElementById('loadingIndicator');
-            resultBox?.classList.add('hidden');
-            loading?.classList.remove('hidden');
+        function setBusy(busy, isVideo = false) {
+            const t = T();
+            ['translateBtnDesktop', 'translateBtnMobile'].forEach(id => { const b = $(id); if (b) b.disabled = busy; });
+            const title = $('loadingIndicatorTitle');
+            if (title) title.innerText = isVideo ? t.loadingVideoTitle : t.loadingTitle;
+            if (busy) {
+                hideError();
+                hide('resultContainer');
+                show('loadingIndicator');
+                setTimeout(() => $('loadingIndicator')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+            } else {
+                hide('loadingIndicator');
+            }
+        }
 
+        let translationInFlight = false;
+
+        async function runVideoTranslation(file) {
+            if (translationInFlight) return;
+            translationInFlight = true;
+            const query = $('queryInput').value.trim();
             const formData = new FormData();
             formData.append("video", file);
-            formData.append("user_text", query);
+            formData.append("user_text", query.slice(0, 500));
             formData.append("lang", currentLang);
 
+            setBusy(true, true);
             try {
-                const response = await fetch(`${BACKEND_API_BASE}/api/v1/umwelt/transduce-video`, {
-                    method: 'POST', body: formData
-                });
-                if (!response.ok) throw new Error("API Video Error");
-                const data = await response.json();
-                lastSynthesizedData = data.neural_synthesis;
-                displayTranslationResult(data.neural_synthesis);
-                saveToHistory(query || "Video Analysis", data.neural_synthesis);
-                loading?.classList.add('hidden');
-                setTimeout(() => resultBox?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-            } catch (error) {
-                console.error("Video analysis error:", error);
-                loading?.classList.add('hidden');
-                const loadingSub = document.getElementById('loadingIndicatorSub');
-                if (loadingSub) {
-                    loadingSub.innerText = currentLang === 'en' ? "Unable to analyze video. Please retry." : "Impossibile analizzare il video. Riprova tra poco.";
-                }
+                const data = await apiFetch('/api/v1/umwelt/transduce-video', { method: 'POST', body: formData, timeoutMs: 180000 });
+                showResult(query || T().videoAnalysisLabel, data);
+            } catch (err) {
+                console.error("Video analysis error:", err);
+                handleApiError(err);
+            } finally {
+                setBusy(false);
+                translationInFlight = false;
             }
         }
 
         // ==================== TRADUZIONE TESTUALE ====================
         async function runTranslation() {
-            const query = document.getElementById('queryInput').value.trim();
-            if (!query) { document.getElementById('queryInput')?.focus(); return; }
+            const input = $('queryInput');
+            const query = input.value.trim();
+            if (query.length < 2) { input?.focus(); return; }
+            if (translationInFlight) return;
+            translationInFlight = true;
 
-            let guestUsage = parseInt(localStorage.getItem('biodog_guest_queries_done') || "0");
-            let userSearchesDone = getUserSearchesDone();
-
-            if (!currentUser && guestUsage >= 1) {
-                openAuthModal(true, currentLang === 'en' ? "🔒 <strong>Sign up free to use your 2 Welcome Trials!</strong>" : "🔒 <strong>Registrati gratis per completare le tue 2 Prove Gratuite!</strong>");
-                return;
-            }
-
-            // Blocco ferreo: dopo 2 ricerche l'utente non pagante viene reindirizzato al Paywall
-            if (currentUser && !isUserPremium && userSearchesDone >= 2) {
-                openPaywallModal(currentLang === 'en' ? "🐾 <strong>You completed your 2 welcome trials.</strong> Choose a plan to continue without limits!" : "🐾 <strong>Hai completato le tue 2 traduzioni gratuite di benvenuto.</strong> Scegli un piano per continuare senza limiti!");
-                return;
-            }
-
-            const btnDesktop = document.getElementById('translateBtnDesktop');
-            const btnMobile = document.getElementById('translateBtnMobile');
-            const resultBox = document.getElementById('resultContainer');
-            const loading = document.getElementById('loadingIndicator');
-
-            resultBox?.classList.add('hidden');
-            loading?.classList.remove('hidden');
-            setTimeout(() => loading?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
-
-            if (btnDesktop) btnDesktop.disabled = true;
-            if (btnMobile) btnMobile.disabled = true;
-
-            const snoutToSend = (userPlanTier === 'pro') ? dogMorphology.snout : "normal";
-            const earsToSend = (userPlanTier === 'pro') ? dogMorphology.ears : "prick";
-            const sizeToSend = (userPlanTier === 'pro') ? dogMorphology.size : "medium";
-            const tailToSend = (userPlanTier === 'pro') ? dogMorphology.tail : "long";
-
+            setBusy(true);
+            const isPro = userPlanTier === 'pro';
             try {
-                const response = await fetch(`${BACKEND_API_BASE}/api/v1/umwelt/transduce`, {
+                const data = await apiFetch('/api/v1/umwelt/transduce', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_text: query,
-                        snout: snoutToSend,
-                        ears: earsToSend,
-                        size: sizeToSend,
-                        tail: tailToSend,
+                    json: {
+                        user_text: query.slice(0, 500),
+                        snout: isPro ? dogMorphology.snout : "normal",
+                        ears: isPro ? dogMorphology.ears : "prick",
+                        size: isPro ? dogMorphology.size : "medium",
+                        tail: isPro ? dogMorphology.tail : "long",
                         lang: currentLang
-                    })
+                    }
                 });
-
-                if (!response.ok) throw new Error(`Status ${response.status}`);
-                const data = await response.json();
-                const synth = data.neural_synthesis;
-                lastSynthesizedData = synth;
-
-                if (!currentUser) {
-                    localStorage.setItem('biodog_guest_queries_done', (guestUsage + 1).toString());
-                } else if (!isUserPremium) {
-                    recordUserSearch();
+                if (data.usage) {
+                    usageInfo = { ...(usageInfo || {}), ...data.usage };
+                    updateTrialBadge();
                 }
-
-                displayTranslationResult(synth);
-                saveToHistory(query, synth);
-                loading?.classList.add('hidden');
-                setTimeout(() => resultBox?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                if (data.sunday_token_used) showToast('sundayToast', 5000);
+                if (data.locked) storageSet('biodog_pending_query', query);
+                showResult(query, data);
             } catch (err) {
                 console.error("Translation processing error:", err);
-                loading?.classList.add('hidden');
+                handleApiError(err);
             } finally {
-                if (btnDesktop) btnDesktop.disabled = false;
-                if (btnMobile) btnMobile.disabled = false;
+                setBusy(false);
+                translationInFlight = false;
+            }
+        }
+
+        async function showResult(query, data) {
+            const synth = data.neural_synthesis;
+            const locked = !!data.locked;
+            lastResult = { query, synth, locked };
+            displayTranslationResult(synth, locked);
+            setTimeout(() => $('resultContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+            if (!locked && currentUser) {
+                if (await saveToHistory(query, synth)) showToast('saveToast');
             }
         }
 
         // ==================== RENDERING RISULTATO ====================
-        function setElText(id, text) { const el = document.getElementById(id); if (el) el.innerText = text || "-"; }
+        function setElText(id, text) { const el = $(id); if (el) el.innerText = text || "-"; }
 
-        function displayTranslationResult(synth) {
+        function renderList(id, items, iconHtml) {
+            const el = $(id);
+            if (!el) return;
+            el.innerHTML = (items || []).map((item, i) => `
+                <li class="flex items-start gap-2.5">
+                    ${iconHtml(i)}
+                    <span class="leading-relaxed">${esc(item)}</span>
+                </li>
+            `).join('');
+        }
+
+        function displayTranslationResult(synth, locked = false) {
             if (!synth) return;
+            const t = T();
 
             setElText('resPankseppText', synth.panksepp_label || synth.panksepp || "SEEKING");
-            setElText('resThought', `"${synth.thought || ''}"`);
+            setElText('resThought', synth.thought ? `"${synth.thought}"` : "");
 
-            const valence = synth.valence !== undefined ? synth.valence : 0;
-            const valTextEl = document.getElementById('resValenceText');
+            const valence = Number.isFinite(synth.valence) ? synth.valence : 0;
+            const valTextEl = $('resValenceText');
             if (valTextEl) {
-                if (valence > 10) {
-                    valTextEl.innerText = currentLang === 'en' ? `Pleasant Experience (+${valence})` : `Esperienza Piacevole (+${valence})`;
-                    valTextEl.className = "text-emerald-700 font-bold";
-                } else if (valence < -10) {
-                    valTextEl.innerText = currentLang === 'en' ? `Distress / Tension (${valence})` : `Disagio / Tensione (${valence})`;
-                    valTextEl.className = "text-rose-700 font-bold";
-                } else {
-                    valTextEl.innerText = currentLang === 'en' ? `Neutral State (${valence})` : `Stato Neutro (${valence})`;
-                    valTextEl.className = "text-slate-600 font-bold";
-                }
+                if (valence > 10) { valTextEl.innerText = t.valencePleasant(valence); valTextEl.className = "text-emerald-700 font-bold"; }
+                else if (valence < -10) { valTextEl.innerText = t.valenceDistress(valence); valTextEl.className = "text-rose-700 font-bold"; }
+                else { valTextEl.innerText = t.valenceNeutral(valence); valTextEl.className = "text-slate-600 font-bold"; }
             }
 
-            const arousal = synth.arousal || 50;
+            const arousal = Number.isFinite(synth.arousal) ? Math.max(0, Math.min(100, synth.arousal)) : 50;
             setElText('resArousalNumber', `${arousal}%`);
-            const bar = document.getElementById('resArousalBar');
+            const bar = $('resArousalBar');
             if (bar) bar.style.width = `${arousal}%`;
 
-            if (synth.sensory) {
-                setElText('resSmell', synth.sensory.smell);
-                setElText('resSight', synth.sensory.sight);
-                setElText('resHearing', synth.sensory.hearing);
-                setElText('resTouch', synth.sensory.touch);
-            }
+            const sensory = synth.sensory || {};
+            setElText('resSmell', sensory.smell);
+            setElText('resSight', sensory.sight);
+            setElText('resHearing', sensory.hearing);
+            setElText('resTouch', sensory.touch);
 
-            if (synth.human_body_language) {
-                setElText('resHumanVoice', synth.human_body_language.voice);
-                setElText('resHumanPosture', synth.human_body_language.posture);
-            }
+            // Agli ospiti il backend non invia la parte pratica: mostriamo testo segnaposto sfocato.
+            const placeholder = t.lockedPlaceholder;
+            const body = synth.human_body_language || {};
+            setElText('resHumanVoice', locked ? placeholder : body.voice);
+            setElText('resHumanPosture', locked ? placeholder : body.posture);
+            setElText('resExplanation', locked ? `${placeholder} ${placeholder}` : synth.explanation);
+            renderList('resSteps', locked ? [placeholder, placeholder, placeholder] : synth.steps,
+                i => `<span class="bg-emerald-200 text-emerald-800 text-xs font-black w-4 h-4 flex items-center justify-center rounded-full shrink-0 mt-0.5">${i + 1}</span>`);
+            renderList('resForbidden', locked ? [placeholder, placeholder] : synth.forbidden,
+                () => `<i class="fa-solid fa-ban text-rose-500 mt-1 shrink-0 text-xs"></i>`);
 
-            setElText('resExplanation', synth.explanation);
+            $('practicalContent')?.classList.toggle('blur-content', locked);
+            $('blurOverlay')?.classList.toggle('hidden', !locked);
 
-            const stepsEl = document.getElementById('resSteps');
-            if (stepsEl) {
-                stepsEl.innerHTML = (synth.steps || []).map((step, i) => `
-                    <li class="flex items-start gap-2.5">
-                        <span class="bg-emerald-200 text-emerald-800 text-xs font-black w-4 h-4 flex items-center justify-center rounded-full shrink-0 mt-0.5">${i+1}</span>
-                        <span class="leading-relaxed">${step}</span>
-                    </li>
-                `).join('');
-            }
+            const morphBadge = $('resMorphologyBadge');
+            const showMorph = !locked && userPlanTier === 'pro';
+            morphBadge?.classList.toggle('hidden', !showMorph);
+            if (showMorph) setElText('resMorphologyDescription', morphologyDescription());
 
-            const forbiddenEl = document.getElementById('resForbidden');
-            if (forbiddenEl) {
-                forbiddenEl.innerHTML = (synth.forbidden || []).map(f => `
-                    <li class="flex items-start gap-2.5">
-                        <i class="fa-solid fa-ban text-rose-500 mt-1 shrink-0 text-xs"></i>
-                        <span class="leading-relaxed">${f}</span>
-                    </li>
-                `).join('');
-            }
-
-            if (!currentUser) applyBlurToResult();
-            else removeBlurFromResult();
-
-            document.getElementById('resultContainer')?.classList.remove('hidden');
+            show('feedbackButtonsArea');
+            hide('feedbackThanksMsg');
+            show('resultContainer');
         }
 
-        function applyBlurToResult() {
-            document.getElementById('practicalContent')?.classList.add('blur-content');
-            document.getElementById('blurOverlay')?.classList.remove('hidden');
-        }
-        function removeBlurFromResult() {
-            document.getElementById('practicalContent')?.classList.remove('blur-content');
-            document.getElementById('blurOverlay')?.classList.add('hidden');
-        }
-
-        // ==================== STORIA & AUTENTICAZIONE ====================
-        function getHistoryKey() { return `biodog_history_${currentUser?.id || 'guest'}`; }
-        function getUserHistory() { try { return JSON.parse(localStorage.getItem(getHistoryKey()) || "[]"); } catch(e) { return []; } }
-        function saveToHistory(query, synth) {
-            const h = getUserHistory();
-            h.unshift({ id: Date.now(), query, synth });
-            if (h.length > 50) h.pop();
-            localStorage.setItem(getHistoryKey(), JSON.stringify(h));
+        // ==================== DIARIO (SUPABASE) ====================
+        async function loadHistory() {
+            historyItems = [];
+            if (!currentUser || !supabaseClient) { updateHistoryBadge(); return; }
+            const { data, error } = await supabaseClient.from('analyses')
+                .select('id, query, synth, created_at').eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false }).limit(50);
+            if (!error && data) historyItems = data;
             updateHistoryBadge();
-        }
-        function updateHistoryBadge() {
-            const count = getUserHistory().length;
-            const b = document.getElementById('historyCountBadge');
-            if (b) b.innerText = count.toString();
+            return !error;
         }
 
-        function openHistoryDrawer() { renderHistoryList(); document.getElementById('historyDrawerBackdrop')?.classList.remove('hidden'); document.getElementById('historyDrawer')?.classList.remove('translate-x-full'); }
-        function closeHistoryDrawer() { document.getElementById('historyDrawerBackdrop')?.classList.add('hidden'); document.getElementById('historyDrawer')?.classList.add('translate-x-full'); }
-        function renderHistoryList() {
-            const container = document.getElementById('historyListContainer');
+        async function saveToHistory(query, synth) {
+            if (!currentUser || !supabaseClient) return false;
+            const { data, error } = await supabaseClient.from('analyses')
+                .insert({ user_id: currentUser.id, query: String(query).slice(0, 600), synth })
+                .select('id, query, synth, created_at').single();
+            if (error) { console.error("Salvataggio diario fallito:", error); showError(T().errSave); return false; }
+            historyItems.unshift(data);
+            if (historyItems.length > 50) historyItems.pop();
+            updateHistoryBadge();
+            return true;
+        }
+
+        function updateHistoryBadge() {
+            const count = historyItems.length;
+            const b = $('historyCountBadge');
+            if (b) b.innerText = count.toString();
+            const s = $('historySummaryText');
+            if (s) s.innerText = T().historyCount(count);
+        }
+
+        async function openHistoryDrawer() {
+            renderHistoryList();
+            show('historyDrawerBackdrop');
+            $('historyDrawer')?.classList.remove('translate-x-full');
+            const ok = await loadHistory();
+            renderHistoryList(ok === false ? T().historyLoadError : null);
+        }
+        function closeHistoryDrawer() {
+            hide('historyDrawerBackdrop');
+            $('historyDrawer')?.classList.add('translate-x-full');
+        }
+
+        function renderHistoryList(errorMessage = null) {
+            const container = $('historyListContainer');
             if (!container) return;
-            const h = getUserHistory();
-            if (!h || h.length === 0) { container.innerHTML = `<div class="py-16 text-center text-slate-400">${currentLang === 'en' ? 'Logbook is empty.' : 'Diario vuoto.'}</div>`; return; }
-            container.innerHTML = h.map(item => `
+            const t = T();
+            if (errorMessage) { container.innerHTML = `<div class="py-16 text-center text-rose-500">${esc(errorMessage)}</div>`; return; }
+            if (!historyItems.length) { container.innerHTML = `<div class="py-16 text-center text-slate-400">${esc(t.historyEmpty)}</div>`; return; }
+            const dateFmt = new Intl.DateTimeFormat(currentLang === 'en' ? 'en-GB' : 'it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            container.innerHTML = historyItems.map(item => `
                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-                    <h5 class="text-xs font-black text-slate-800 line-clamp-2">"${item.query}"</h5>
-                    <button onclick="restoreHistoryItem(${item.id})" class="text-xs font-bold text-emerald-700">${currentLang === 'en' ? 'Reopen analysis' : 'Riapri analisi'}</button>
+                    <span class="text-[10px] text-slate-400 font-mono">${esc(dateFmt.format(new Date(item.created_at)))}</span>
+                    <h5 class="text-xs font-black text-slate-800 line-clamp-2">"${esc(item.query)}"</h5>
+                    <button onclick="restoreHistoryItem(${Number(item.id)})" class="text-xs font-bold text-emerald-700">${esc(t.historyReopen)}</button>
                 </div>
             `).join('');
         }
+
         function restoreHistoryItem(id) {
-            const item = getUserHistory().find(x => x.id === id);
+            const item = historyItems.find(x => x.id === id);
             if (!item) return;
-            document.getElementById('queryInput').value = item.query;
-            lastSynthesizedData = item.synth;
-            displayTranslationResult(item.synth);
+            $('queryInput').value = item.query;
+            lastResult = { query: item.query, synth: item.synth, locked: false };
+            displayTranslationResult(item.synth, false);
             closeHistoryDrawer();
-            setTimeout(() => document.getElementById('resultContainer')?.scrollIntoView({ behavior: 'smooth' }), 150);
+            setTimeout(() => $('resultContainer')?.scrollIntoView({ behavior: 'smooth' }), 150);
         }
-        function clearAllHistory() {
-            localStorage.removeItem(getHistoryKey());
+
+        async function clearAllHistory() {
+            if (!currentUser || !supabaseClient) return;
+            if (!window.confirm(T().clearHistoryConfirm)) return;
+            const { error } = await supabaseClient.from('analyses').delete().eq('user_id', currentUser.id);
+            if (error) { renderHistoryList(T().historyLoadError); return; }
+            historyItems = [];
             renderHistoryList();
             updateHistoryBadge();
         }
 
         // ==================== AUTH GOOGLE & MAGIC LINK ====================
+        // msg deve essere testo fidato (costanti I18N), perché viene inserito come HTML.
         function openAuthModal(isPaywall = false, msg = null) {
-            const notice = document.getElementById('authPaywallNotice');
+            const notice = $('authPaywallNotice');
             if (notice) {
-                if (msg) notice.innerHTML = msg;
+                notice.innerHTML = msg || '';
                 notice.className = msg ? "bg-purple-50 border border-purple-200 p-2.5 rounded-xl text-xs text-purple-900 font-medium text-center shadow-inner mb-2.5" : "hidden";
             }
-            document.getElementById('authModal')?.classList.remove('hidden');
+            hide('authError');
+            show('authModal');
         }
-        function closeAuthModal() { document.getElementById('authModal')?.classList.add('hidden'); }
+        function openAuthModalEmail() { openAuthModal(false, esc(T().blurEmailPrompt)); }
+        function closeAuthModal() { hide('authModal'); }
+
         async function handleGoogleLogin() {
             if (!supabaseClient) return;
             await supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
         }
+
         async function handleMagicLinkLogin() {
-            const email = document.getElementById('authEmail')?.value.trim();
-            if (!email || !email.includes('@')) return;
+            const t = T();
+            const errorEl = $('authError');
+            const email = $('authEmail')?.value.trim();
+            hide('authSuccessNotice');
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                if (errorEl) { errorEl.innerText = t.authInvalidEmail; errorEl.classList.remove('hidden'); }
+                return;
+            }
+            errorEl?.classList.add('hidden');
+            const btn = $('btnActionMagicLink');
+            if (btn) btn.disabled = true;
             try {
-                await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-                document.getElementById('authSuccessNotice')?.classList.remove('hidden');
-            } catch(e) {}
+                const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+                if (error) throw error;
+                show('authSuccessNotice');
+            } catch (e) {
+                console.error("Magic link error:", e);
+                if (errorEl) { errorEl.innerText = t.authSendError; errorEl.classList.remove('hidden'); }
+            } finally {
+                if (btn) btn.disabled = false;
+            }
         }
+
         async function handleLogout() {
+            closeHistoryDrawer();
             await supabaseClient.auth.signOut();
-            isUserPremium = false; userPlanTier = null;
-            updateAuthUI(null); closeHistoryDrawer();
+            lastResult = null;
+            hide('resultContainer');
+            await updateAuthUI(null);
         }
 
         // ==================== CONDIVISIONE & PAYWALL ====================
+        // msg deve essere testo fidato (costanti I18N), perché viene inserito come HTML.
         function openPaywallModal(msg = null) {
-            const banner = document.getElementById('paywallNoticeBanner');
+            const banner = $('paywallNoticeBanner');
             if (banner) {
-                if (msg) {
-                    banner.innerHTML = msg;
-                    banner.classList.remove('hidden');
-                } else {
-                    banner.classList.add('hidden');
-                }
+                banner.innerHTML = msg || '';
+                banner.classList.toggle('hidden', !msg);
             }
-            document.getElementById('paywallModal')?.classList.remove('hidden');
+            show('paywallModal');
         }
-        function closePaywallModal() { document.getElementById('paywallModal')?.classList.add('hidden'); }
-        function openWelcomeModal() { document.getElementById('welcomeModal')?.classList.remove('hidden'); }
-        function closeWelcomeModal() { document.getElementById('welcomeModal')?.classList.add('hidden'); }
+        function closePaywallModal() { hide('paywallModal'); }
+        function openWelcomeModal() { show('welcomeModal'); }
+        function closeWelcomeModal() { hide('welcomeModal'); }
 
         async function startStripeCheckout(tier) {
+            const t = T();
             if (!currentUser) {
                 closePaywallModal();
-                openAuthModal(true, currentLang === 'en' ? "Please sign in or register to complete your subscription!" : "Accedi o registrati per completare l'abbonamento!");
+                openAuthModal(true, esc(t.msgCheckoutLogin));
                 return;
             }
             try {
-                const response = await fetch(`${BACKEND_API_BASE}/api/v1/stripe/create-checkout-session`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: currentUser.id, user_email: currentUser.email || "", tier })
-                });
-                const data = await response.json();
-                if (data.checkout_url) window.location.href = data.checkout_url;
-            } catch(e) {
-                console.error("Stripe checkout error:", e);
+                const data = await apiFetch('/api/v1/stripe/create-checkout-session', { method: 'POST', json: { tier }, timeoutMs: 60000 });
+                if (data?.checkout_url) window.location.href = data.checkout_url;
+            } catch (err) {
+                console.error("Stripe checkout error:", err);
+                closePaywallModal();
+                if (err.code === 'already_subscribed') openStripePortal();
+                else if (err.code === 'invalid_session' || err.code === 'auth_required') handleApiError(err);
+                else showError(t.errCheckout);
             }
         }
 
+        function shareText() {
+            if (!lastResult) return null;
+            const s = lastResult.synth;
+            const state = s.panksepp_label || s.panksepp;
+            return currentLang === 'en'
+                ? `🐾 Check out what my dog feels on BioDog.io!\n\nBehavior: "${lastResult.query}"\n🧠 State: ${state}\n💭 Thought: "${s.thought}"\n\nTry it on https://biodog.io`
+                : `🐾 Guarda cosa prova il mio cane su BioDog.io!\n\nComportamento: "${lastResult.query}"\n🧠 Stato: ${state}\n💭 Pensiero: "${s.thought}"\n\nProvalo su https://biodog.io`;
+        }
+
         function shareOnWhatsApp() {
-            if (!lastSynthesizedData) return;
-            const query = document.getElementById('queryInput').value.trim();
-            const text = currentLang === 'en'
-                ? `🐾 Check out what my dog feels on BioDog.io!\n\nBehavior: "${query}"\n🧠 State: ${lastSynthesizedData.panksepp_label || lastSynthesizedData.panksepp}\n💭 Thought: "${lastSynthesizedData.thought}"\n\nDecode free on https://biodog.io`
-                : `🐾 Guarda cosa prova il mio cane su BioDog.io!\n\nComportamento: "${query}"\n🧠 Stato: ${lastSynthesizedData.panksepp_label || lastSynthesizedData.panksepp}\n💭 Pensiero: "${lastSynthesizedData.thought}"\n\nTraduci gratis su https://biodog.io`;
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+            const text = shareText();
+            if (text) window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
         }
 
         function copyCurrentAnalysis() {
-            if (!lastSynthesizedData) return;
-            const query = document.getElementById('queryInput').value.trim();
-            const text = `BioDog.io • ${query}\n${lastSynthesizedData.panksepp_label || lastSynthesizedData.panksepp}\n"${lastSynthesizedData.thought}"\nhttps://biodog.io`;
+            const text = shareText();
+            if (!text || !navigator.clipboard) return;
             navigator.clipboard.writeText(text).then(() => {
-                const btn = document.getElementById('btnCopyAnalysisText');
-                if (btn) btn.innerText = I18N[currentLang].copiedToast;
-                setTimeout(() => { if (btn) btn.innerText = I18N[currentLang].btnCopyAnalysisText; }, 2500);
-            });
+                const btn = $('btnCopyAnalysisText');
+                if (btn) btn.innerText = T().copiedToast;
+                setTimeout(() => { if (btn) btn.innerText = T().btnCopyAnalysisText; }, 2500);
+            }).catch(() => {});
         }
 
-        function submitFeedback(t) {
-            document.getElementById('feedbackButtonsArea')?.classList.add('hidden');
-            document.getElementById('feedbackThanksMsg')?.classList.remove('hidden');
+        function submitFeedback(value) {
+            try { window.umami?.track('analysis_feedback', { value, lang: currentLang }); } catch (e) {}
+            hide('feedbackButtonsArea');
+            show('feedbackThanksMsg');
         }
     </script>
 </body>
