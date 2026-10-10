@@ -226,7 +226,8 @@ def _lock_for_guest(synth: dict) -> dict:
     locked = dict(synth)
     locked["human_body_language"] = {"voice": "", "posture": ""}
     locked["explanation"] = ""
-    locked["steps"] = []
+    # Il primo consiglio pratico resta visibile: fa capire il valore prima della registrazione.
+    locked["steps"] = synth["steps"][:1]
     locked["forbidden"] = []
     return locked
 
@@ -354,6 +355,15 @@ _TOKEN_CACHE_TTL = 60
 _token_cache: dict = {}
 _token_cache_lock = threading.Lock()
 
+_DOG_NAME_RE = re.compile(r"^[^\W\d_](?:[^\W_]|[ '\-.]){0,29}$")
+
+def _clean_dog_name(value) -> str:
+    """Nome del cane scelto dall'utente: solo lettere, spazi, apostrofi e trattini (va nel prompt)."""
+    if not isinstance(value, str):
+        return ""
+    name = " ".join(value.split())
+    return name if _DOG_NAME_RE.match(name) else ""
+
 def _fetch_supabase_user(token: str) -> Optional[dict]:
     """Verifica il JWT di Supabase chiedendo a Supabase Auth chi è l'utente."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
@@ -373,7 +383,8 @@ def _fetch_supabase_user(token: str) -> Optional[dict]:
         raise SupabaseError(f"Auth {type(e).__name__}: {e}") from e
     if not data or not data.get("id"):
         return None
-    return {"id": data["id"], "email": data.get("email") or ""}
+    meta = data.get("user_metadata") or {}
+    return {"id": data["id"], "email": data.get("email") or "", "dog_name": _clean_dog_name(meta.get("dog_name"))}
 
 def _resolve_user(token: str) -> Optional[dict]:
     now = time.time()
@@ -548,6 +559,13 @@ def _profile_text(req: TransductionRequest, bio: dict) -> str:
         f"- Coda {TAIL_TEXT[req.tail]}"
     )
 
+def _dog_name_text(user: Optional[dict]) -> str:
+    name = (user or {}).get("dog_name") or ""
+    if not name:
+        return ""
+    return (f"\nNome del cane / Dog name: {name} — usalo in modo naturale 1-2 volte in explanation o steps "
+            "(non nel campo thought, che è in prima persona).")
+
 def _lang_directive(lang: Optional[str]) -> Tuple[str, str]:
     target_lang = "en" if (lang and lang.lower().strip() == "en") else "it"
     directive = "OUTPUT IN NATURAL ENGLISH (lang=en)" if target_lang == "en" else "OUTPUT IN ITALIAN (lang=it)"
@@ -590,6 +608,7 @@ async def transduce(req: TransductionRequest, request: Request, user: Optional[d
         f"{SYSTEM_PROMPT}\n\nTARGET LANGUAGE: {lang_directive}\n\n"
         f"Comportamento osservato / Observed behavior: \"{req.user_text}\"\n"
         f"{_profile_text(req, bio)}"
+        f"{_dog_name_text(user)}"
     )
     synth, api_err = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, user_prompt)
     if not synth:
@@ -656,6 +675,7 @@ async def transduce_video(
     user_prompt = f"{SYSTEM_PROMPT}\n\nTARGET LANGUAGE: {lang_directive}\n\nAnalizza i fotogrammi di questo video per decodificare il comportamento del cane."
     if user_text:
         user_prompt += f"\nContesto / Context: '{user_text}'"
+    user_prompt += _dog_name_text(user)
     synth, api_err = await asyncio.to_thread(_call_gemini_api_video, GEMINI_API_KEY, user_prompt, video_bytes, mime_type)
     if not synth:
         print(f"[BioDog] Gemini video fallito: {api_err}")
