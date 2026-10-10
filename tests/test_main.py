@@ -25,6 +25,13 @@ class FakeDB:
     def __init__(self):
         self.subs = {}
         self.usage = {}
+        self.paths = []
+        self.path_prompts = []
+
+    def insert_path(self, user_id, situation, plan):
+        row = {"id": len(self.paths) + 1, "user_id": user_id, "situation": situation, "plan": plan, "created_at": "2026-10-11T10:00:00Z"}
+        self.paths.append(row)
+        return row
 
     def get_subscription(self, user_id):
         return self.subs.get(user_id)
@@ -57,6 +64,8 @@ def db(monkeypatch):
     monkeypatch.setattr(main, "_increment_usage", fake.increment)
     monkeypatch.setattr(main, "_upsert_subscription", fake.upsert)
     monkeypatch.setattr(main, "_update_subscription_by_stripe_id", fake.update_by_stripe_id)
+    monkeypatch.setattr(main, "_insert_path", fake.insert_path)
+    monkeypatch.setattr(main, "_call_gemini_path", lambda key, prompt: (fake.path_prompts.append(prompt), (main._normalize_path(PATH), None))[1])
     monkeypatch.setattr(main, "_call_gemini_api", lambda key, prompt: (main._normalize_synthesis(SYNTH), None))
     monkeypatch.setattr(main, "_token_cache", {})
     monkeypatch.setattr(main, "_guest_hits", {})
@@ -74,6 +83,10 @@ def auth(token):
 
 
 BODY = {"user_text": "salta addosso", "lang": "it"}
+
+PATH = {"title": "Rientri tranquilli", "goal": "Saluti più calmi.", "safety_note": "Se ringhia, fermati.",
+        "days": [{"day": i, "title": f"Giorno {i}", "task": f"Esercizio {i}.", "minutes": 10, "why": "Perché.",
+                  "success": "Bene.", "stop_if": "Stop."} for i in range(1, 8)]}
 
 
 def test_decide_quota():
@@ -416,3 +429,34 @@ def test_prompt_is_cognitive_ethology():
                    "base sicura", "conflitto tra motivazioni", "inferenze"):
         assert phrase in main.SYSTEM_PROMPT, phrase
     assert "etologo clinico" not in main.SYSTEM_PROMPT
+
+
+def test_path_free_user_gets_one(db, client):
+    r = client.post("/api/v1/paths", json={"user_text": "salta addosso", "focus": "Saluto eccitato"}, headers=auth("tok-named"))
+    assert r.status_code == 200, r.text
+    path = r.json()["path"]
+    assert len(path["plan"]["days"]) == 7 and path["completed"] == []
+    assert 'Main hypothesis: "Saluto eccitato"' in db.path_prompts[-1] and "Fido" in db.path_prompts[-1]
+    assert db.paths[0]["user_id"] == "u-named"
+    r = client.post("/api/v1/paths", json={"user_text": "altro"}, headers=auth("tok-named"))
+    assert r.status_code == 402 and r.json()["detail"]["code"] == "path_limit"
+
+
+def test_path_paid_unlimited_and_auth_required(db, client):
+    assert client.post("/api/v1/paths", json={"user_text": "salta addosso"}).status_code == 401
+    for _ in range(3):
+        assert client.post("/api/v1/paths", json={"user_text": "salta addosso"}, headers=auth("tok-pro")).status_code == 200
+    assert ("u-pro", "path_trial") not in db.usage
+
+
+def test_path_engine_failure_does_not_consume(db, client, monkeypatch):
+    monkeypatch.setattr(main, "_call_gemini_path", lambda key, prompt: (None, "boom"))
+    r = client.post("/api/v1/paths", json={"user_text": "salta addosso"}, headers=auth("tok-free"))
+    assert r.status_code == 502 and ("u-free", "path_trial") not in db.usage
+
+
+def test_normalize_path():
+    p = main._normalize_path({**PATH, "days": PATH["days"] + [PATH["days"][0]]})
+    assert len(p["days"]) == 7 and [d["day"] for d in p["days"]] == list(range(1, 8))
+    with pytest.raises(ValueError):
+        main._normalize_path({**PATH, "days": PATH["days"][:5]})
