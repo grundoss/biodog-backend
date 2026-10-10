@@ -13,6 +13,10 @@ SYNTH = {
     "thought": "Odore nuovo!", "sensory": {"smell": "a", "sight": "b", "hearing": "c", "touch": "d"},
     "human_body_language": {"voice": "calma", "posture": "di fianco"}, "explanation": "spiegazione",
     "steps": ["uno", "due"], "forbidden": ["mai"],
+    "urgency": {"level": "yellow", "label": "Da lavorarci", "reason": "Si può migliorare con calma."},
+    "hypotheses": [{"title": "Paura del rumore", "likelihood": "high", "why": "Suono intenso.", "observe": ["coda bassa", "si nasconde"]},
+                   {"title": "Risposta vocale", "likelihood": "low", "why": "Imita un ululato.", "observe": ["corpo morbido"]}],
+    "glossary": [{"term": "controcondizionamento", "definition": "Cambiare l'emozione associata a uno stimolo."}],
 }
 
 
@@ -312,3 +316,32 @@ def test_prompt_safety_rules():
     for phrase in ("primo soccorso", "112", "per uso umano", "prevenire le fughe", "Bambini",
                    "non rinforza la paura", "peso spostato indietro", "comportamento appreso"):
         assert phrase in main.SYSTEM_PROMPT, phrase
+
+
+def test_normalize_new_fields():
+    s = main._normalize_synthesis({
+        "thought": "ok",
+        "urgency": {"level": "RED", "label": "Serve un veterinario oggi", "reason": "Possibile dolore."},
+        "hypotheses": [{"title": "Dolore", "likelihood": "certissimo", "observe": ["a", "", 3, "b"]}, {"x": 1}, "y"],
+        "glossary": [{"term": "ab", "definition": "troppo corto"}, {"term": "soglia", "definition": "Il limite oltre cui reagisce."},
+                     {"term": "Soglia", "definition": "duplicato"}],
+    })
+    assert s["urgency"]["level"] == "red"
+    assert s["hypotheses"] == [{"title": "Dolore", "likelihood": "medium", "why": "", "observe": ["a", "b"]}]
+    assert s["glossary"] == [{"term": "soglia", "definition": "Il limite oltre cui reagisce."}]
+    assert main._normalize_synthesis({"thought": "ok", "urgency": {"level": "purple"}})["urgency"] is None
+    assert main._normalize_synthesis({"thought": "ok"})["hypotheses"] == []
+
+
+def test_guest_sees_urgency_and_hypothesis_titles_only(db, client):
+    r = client.post("/api/v1/umwelt/transduce", json=BODY, headers={"X-Guest-Id": "guest-bbbbbbbbbbbbbbbb"})
+    synth = r.json()["neural_synthesis"]
+    assert synth["urgency"]["level"] == "yellow"
+    assert [h["title"] for h in synth["hypotheses"]] == ["Paura del rumore", "Risposta vocale"]
+    assert all(h["observe"] == [] and h["why"] == "" for h in synth["hypotheses"])
+    assert synth["glossary"][0]["term"] == "controcondizionamento"
+
+
+def test_prompt_asks_new_fields():
+    for key in ('"urgency"', '"hypotheses"', '"glossary"', '"observe"', '"likelihood"'):
+        assert key in main.SYSTEM_PROMPT

@@ -169,7 +169,14 @@ CAMPI DA COMPILARE
 - thought: 1-2 frasi in prima persona, come penserebbe il cane se potesse parlare: sensoriali, immediate, senza termini tecnici e senza morale umana.
 - sensory: per ogni senso 1-2 frasi su cosa percepisce probabilmente e come lo vive (smell, sight, hearing, touch), in base ai dati sensoriali sopra; se un senso conta poco, dillo in breve.
 - human_body_language.voice e human_body_language.posture: 1-2 frasi pratiche ciascuna, con il motivo dal punto di vista del cane.
-- explanation: 5-8 frasi. Apri con una frase semplice che riassume. Poi l'analisi etologica tecnica: funzione del comportamento, sistema emotivo, meccanismi di apprendimento coinvolti, le ipotesi alternative con i segnali per distinguerle. Chiudi con quando preoccuparsi o rivolgersi a un professionista.
+- explanation: 4-7 frasi. Apri con una frase semplice che riassume. Poi l'analisi etologica tecnica: funzione del comportamento, sistema emotivo, meccanismi di apprendimento coinvolti. Non ripetere l'elenco delle ipotesi (vanno nel campo hypotheses): richiamale solo se serve. Chiudi con quando preoccuparsi o rivolgersi a un professionista.
+- urgency: valutazione del livello di attenzione richiesto.
+  - level "green": comportamento normale o innocuo, al massimo piccoli accorgimenti.
+  - level "yellow": problema da gestire e su cui lavorare con calma; da monitorare.
+  - level "red": rischio per la sicurezza di persone o animali (morsi, aggressività verso bambini, ringhio che aumenta), possibile urgenza medica (segnali di emergenza), panico intenso o autolesioni: serve un professionista o un veterinario presto, o subito.
+  - label: 2-5 parole (es. "Comportamento normale", "Da lavorarci con calma", "Serve un veterinario oggi"); reason: 1 frase che motiva il livello.
+- hypotheses: 2-3 ipotesi funzionali in ordine di probabilità. Per ciascuna: title (3-7 parole), likelihood ("high", "medium" o "low", coerente con l'ordine), why (1 frase sul meccanismo), observe (2-3 segnali concreti o elementi di contesto che il proprietario può osservare per confermarla o escluderla).
+- glossary: 2-6 termini tecnici che hai usato nei testi (scritti esattamente come compaiono), ciascuno con una definizione semplice di massimo 20 parole.
 - steps: 3-5 azioni in ordine di priorità (prima la sicurezza, poi la gestione, poi l'esercizio), una o due frasi ciascuna, con il verbo all'imperativo; il primo esercizio spiegato in modo operativo.
 - forbidden: 2-4 errori comuni, ciascuno con il motivo etologico in poche parole.
 
@@ -192,7 +199,10 @@ FORMATO: restituisci ESCLUSIVAMENTE un JSON valido (senza testo introduttivo né
   "human_body_language": {"voice": "...", "posture": "..."},
   "explanation": "...",
   "steps": ["...", "...", "..."],
-  "forbidden": ["...", "..."]
+  "forbidden": ["...", "..."],
+  "urgency": {"level": "green | yellow | red", "label": "...", "reason": "..."},
+  "hypotheses": [{"title": "...", "likelihood": "high | medium | low", "why": "...", "observe": ["...", "..."]}],
+  "glossary": [{"term": "...", "definition": "..."}]
 }"""
 
 def _extract_clean_json(raw_text: str) -> dict:
@@ -211,6 +221,46 @@ def _clamp_int(value, low: int, high: int, default: int) -> int:
         return max(low, min(high, int(round(float(value)))))
     except (TypeError, ValueError):
         return default
+
+URGENCY_LEVELS = ("green", "yellow", "red")
+LIKELIHOODS = ("high", "medium", "low")
+
+def _short(v, limit: int) -> str:
+    return v.strip()[:limit] if isinstance(v, str) else ""
+
+def _normalize_urgency(raw) -> Optional[dict]:
+    if not isinstance(raw, dict):
+        return None
+    level = _short(raw.get("level"), 10).lower()
+    if level not in URGENCY_LEVELS:
+        return None
+    return {"level": level, "label": _short(raw.get("label"), 60), "reason": _short(raw.get("reason"), 300)}
+
+def _normalize_hypotheses(raw) -> list:
+    items = []
+    for h in raw if isinstance(raw, list) else []:
+        if not isinstance(h, dict) or not _short(h.get("title"), 80):
+            continue
+        likelihood = _short(h.get("likelihood"), 10).lower()
+        observe = h.get("observe") if isinstance(h.get("observe"), list) else []
+        items.append({
+            "title": _short(h.get("title"), 80),
+            "likelihood": likelihood if likelihood in LIKELIHOODS else "medium",
+            "why": _short(h.get("why"), 300),
+            "observe": [o for o in (_short(x, 200) for x in observe) if o][:4],
+        })
+    return items[:3]
+
+def _normalize_glossary(raw) -> list:
+    items, seen = [], set()
+    for g in raw if isinstance(raw, list) else []:
+        if not isinstance(g, dict):
+            continue
+        term, definition = _short(g.get("term"), 40), _short(g.get("definition"), 200)
+        if len(term) >= 3 and definition and term.lower() not in seen:
+            seen.add(term.lower())
+            items.append({"term": term, "definition": definition})
+    return items[:8]
 
 def _normalize_synthesis(raw: dict) -> dict:
     """Garantisce che la risposta del modello abbia sempre la forma attesa dal frontend."""
@@ -238,6 +288,9 @@ def _normalize_synthesis(raw: dict) -> dict:
         "explanation": text(raw.get("explanation")),
         "steps": text_list(raw.get("steps")),
         "forbidden": text_list(raw.get("forbidden")),
+        "urgency": _normalize_urgency(raw.get("urgency")),
+        "hypotheses": _normalize_hypotheses(raw.get("hypotheses")),
+        "glossary": _normalize_glossary(raw.get("glossary")),
     }
     if not synth["thought"] and not synth["explanation"]:
         raise ValueError("Risposta del modello vuota")
@@ -253,6 +306,8 @@ def _lock_for_guest(synth: dict) -> dict:
     # Il primo consiglio pratico resta visibile: fa capire il valore prima della registrazione.
     locked["steps"] = synth["steps"][:1]
     locked["forbidden"] = []
+    # Ipotesi visibili come anteprima; i segnali da osservare restano per chi ha un account.
+    locked["hypotheses"] = [{**h, "why": "", "observe": []} for h in synth.get("hypotheses", [])]
     return locked
 
 # ==================== CHIAMATE GEMINI API ====================
