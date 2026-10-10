@@ -166,8 +166,11 @@ def test_morphology_only_for_pro(db, client, monkeypatch):
     body = {**BODY, "snout": "flat"}
     client.post("/api/v1/umwelt/transduce", json=body, headers=auth("tok-free"))
     client.post("/api/v1/umwelt/transduce", json=body, headers=auth("tok-pro"))
-    assert "Cranio/Skull: normal" in prompts[0]
-    assert "Cranio/Skull: flat" in prompts[1]
+    assert "non indicato" in prompts[0] and "Cranio/Skull" not in prompts[0]
+    assert "Cranio/Skull: flat" in prompts[1] and "muso corto" in prompts[1]
+    # Niente numeri pseudo-precisi che il modello scambierebbe per misure.
+    assert "cpd" not in prompts[1] and "cm²" not in prompts[1]
+    assert 'Observed behavior: "salta addosso"' in prompts[0]
 
 
 def test_video_requires_pro(db, client, monkeypatch):
@@ -260,3 +263,10 @@ def test_normalize_synthesis_handles_garbage():
     assert s["arousal"] == 100 and s["valence"] == 0 and s["steps"] == ["a"]
     with pytest.raises(ValueError):
         main._normalize_synthesis({"arousal": 5})
+
+
+def test_prompt_keeps_frontend_contract():
+    # Il frontend legge esattamente questi campi: il prompt deve continuare a richiederli.
+    for key in ("situation_title", "panksepp_label", "arousal", "valence", "thought", "smell", "sight",
+                "hearing", "touch", "voice", "posture", "explanation", "steps", "forbidden"):
+        assert f'"{key}"' in main.SYSTEM_PROMPT
