@@ -23,7 +23,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 
     <!-- Umami Analytics (GDPR Cookieless) -->
-    <script defer src="https://cloud.umami.is/script.js" data-website-id="1ab332f7-ae52-4131-8caf-db27a357dfe4"></script>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="1ab332f7-ae52-4131-8caf-db27a357dfe4" data-exclude-hash="true"></script>
 
     <!-- Tailwind & Font -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -479,7 +479,7 @@
                             </p>
                             
                             <div class="w-full max-w-xs space-y-2">
-                                <button onclick="handleGoogleLogin()" class="w-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 transform active:scale-95">
+                                <button onclick="handleGoogleLogin()" id="btnUnlockGoogleCbarq" class="w-full bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 transform active:scale-95">
                                     <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
                                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -915,7 +915,7 @@
                         </p>
 
                         <div class="w-full space-y-2">
-                            <button onclick="handleGoogleLogin()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-white text-xs sm:text-sm font-bold py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2.5 transform active:scale-95">
+                            <button onclick="handleGoogleLogin()" id="btnUnlockGoogleBlur" class="w-full bg-emerald-500 hover:bg-emerald-400 text-white text-xs sm:text-sm font-bold py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2.5 transform active:scale-95">
                                 <svg class="w-4 h-4 shrink-0 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
                                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1102,7 +1102,7 @@
                 </button>
             </div>
             
-            <div class="flex items-center my-1">
+            <div class="flex items-center my-1" id="authDividerRow">
                 <div class="flex-grow border-t border-slate-200"></div>
                 <span class="px-2.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest" id="txtDividerAuth">oppure link magico email</span>
                 <div class="flex-grow border-t border-slate-200"></div>
@@ -1333,7 +1333,9 @@
             it: {
                 pageTitle: "BioDog.io | Traduttore Etologico e Psicologia Canina",
                 metaDesc: "Entra nella mente del tuo cane. BioDog.io decodifica comportamenti, emozioni primarie e percezioni sensoriali su base scientifica.",
-                inAppAlert: '💡 Consiglio: Tocca i 3 puntini in alto a destra e scegli <strong>"Apri in Chrome / Safari"</strong> per salvare i progressi!',
+                inAppAlert: '💡 Sei nel browser di Facebook/Instagram: accedi con la tua <strong>email</strong>, oppure tocca i 3 puntini e scegli <strong>"Apri nel browser"</strong> per usare Google.',
+                btnEmailInApp: "Sblocca Gratis con la tua Email ✉️",
+                authSuccessBodyInApp: "Apri il link dall'email: continuerai nel browser del telefono, dove troverai già il tuo account.",
                 stripeSuccess: "Pagamento ricevuto! Stiamo attivando il tuo abbonamento a <strong>BioDog</strong>…",
                 stripeActive: "Complimenti! Il tuo abbonamento a <strong>BioDog</strong> è attivo.",
                 stripePending: "Pagamento ricevuto. L'attivazione può richiedere qualche minuto: ricarica la pagina tra poco.",
@@ -1554,7 +1556,9 @@
             en: {
                 pageTitle: "BioDog.io | Ethological Dog Translator & Canine Psychology",
                 metaDesc: "Step inside your dog's mind. BioDog.io decodes body language, emotional circuits and sensory Umwelt on a scientific ground.",
-                inAppAlert: '💡 Tip: Tap the 3 dots in the top right and choose <strong>"Open in Chrome / Safari"</strong> to save your progress!',
+                inAppAlert: '💡 You are in the Facebook/Instagram browser: sign in with your <strong>email</strong>, or tap the 3 dots and choose <strong>"Open in browser"</strong> to use Google.',
+                btnEmailInApp: "Unlock Free with your Email ✉️",
+                authSuccessBodyInApp: "Open the link from the email: you will continue in your phone's browser, already signed in.",
                 stripeSuccess: "Payment received! Activating your <strong>BioDog</strong> subscription…",
                 stripeActive: "Congratulations! Your <strong>BioDog</strong> subscription is active.",
                 stripePending: "Payment received. Activation can take a few minutes: reload the page shortly.",
@@ -1889,6 +1893,7 @@
                 else el.innerText = t[key];
             }
             t.quickChipsLabels.forEach((label, idx) => { const chip = $(`chip_${idx}`); if (chip) chip.innerText = label; });
+            applyInAppMode();
 
             // Componenti dinamici
             updateTrialBadge();
@@ -1957,10 +1962,69 @@
         }
         function openCookieBanner() { show('cookieBanner'); }
 
-        function checkInAppBrowser() {
-            const ua = navigator.userAgent || navigator.vendor || window.opera || "";
-            const isInApp = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Instagram") > -1);
-            if (isInApp) show('inAppBrowserAlert');
+        // Browser interni di Facebook/Instagram/Messenger/TikTok: Google blocca il login OAuth (disallowed_useragent).
+        const IS_IN_APP_BROWSER = /FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|musical_ly|BytedanceWebview|Threads/i
+            .test(navigator.userAgent || "");
+
+        function applyInAppMode() {
+            if (!IS_IN_APP_BROWSER) return;
+            const t = T();
+            show('inAppBrowserAlert');
+            hide('btnActionGoogle');
+            hide('authDividerRow');
+            // Nei riquadri bloccati il bottone principale diventa "accedi con email".
+            [['btnUnlockGoogleCbarq', 'txtBtnUnlockGoogle', 'txtBtnUnlockEmail'],
+             ['btnUnlockGoogleBlur', 'txtBtnBlurGoogle', 'txtBtnBlurEmail']].forEach(([btnId, labelId, secondaryId]) => {
+                $(btnId)?.querySelector('svg')?.classList.add('hidden');
+                const label = $(labelId);
+                if (label) label.innerText = t.btnEmailInApp;
+                hide(secondaryId);
+            });
+            const successBody = $('txtAuthSuccessBody');
+            if (successBody) successBody.innerText = t.authSuccessBodyInApp;
+        }
+
+        // Toglie dall'URL i token di login (#access_token=...) appena Supabase li ha letti,
+        // così non finiscono nella cronologia né negli strumenti di analisi.
+        function cleanAuthParamsFromUrl() {
+            const hasAuthHash = /(^|[#&])(access_token|refresh_token|provider_token|error_description|error_code)=/.test(window.location.hash);
+            const params = new URLSearchParams(window.location.search);
+            const authKeys = ['code', 'error', 'error_code', 'error_description'];
+            const hasAuthQuery = authKeys.some(k => params.has(k));
+            if (!hasAuthHash && !hasAuthQuery) return;
+            authKeys.forEach(k => params.delete(k));
+            const query = params.toString();
+            window.history.replaceState(null, document.title, window.location.pathname + (query ? `?${query}` : ''));
+        }
+
+        // ==================== EVENTI DI CONVERSIONE ====================
+        const PLAN_PRICES_EUR = { premium: 1.99, standard: 3.49, pro: 3.99 };
+
+        // Umami (senza cookie) sempre; Meta Pixel solo con consenso ai cookie.
+        function trackEvent(name, data = {}, metaEvent = null, metaParams = {}) {
+            try { window.umami?.track(name, data); } catch (e) {}
+            if (!metaEvent || storageGet('biodog_cookie_consent') !== 'granted') return;
+            loadMetaPixel();
+            try { window.fbq('track', metaEvent, metaParams); } catch (e) {}
+        }
+
+        function maybeTrackRegistration(user) {
+            const key = `biodog_reg_tracked_${user.id}`;
+            if (storageGet(key)) return;
+            storageSet(key, '1');
+            // Account creato da meno di 30 minuti: è la prima registrazione, non un login successivo.
+            const ageMs = Date.now() - new Date(user.created_at).getTime();
+            if (!(ageMs >= 0 && ageMs < 30 * 60 * 1000)) return;
+            const method = user.app_metadata?.provider || 'email';
+            trackEvent('signup', { method }, 'CompleteRegistration', { content_name: 'BioDog account', status: true });
+        }
+
+        function trackSubscription(tier) {
+            const key = `biodog_sub_tracked_${currentUser?.id}_${tier}`;
+            if (!currentUser || storageGet(key)) return;
+            storageSet(key, '1');
+            const value = PLAN_PRICES_EUR[tier] || 0;
+            trackEvent('subscribe', { tier }, 'Subscribe', { value, currency: 'EUR', predicted_ltv: Math.round(value * 6 * 100) / 100 });
         }
 
         // ==================== API BACKEND ====================
@@ -2383,14 +2447,18 @@
         window.onload = () => {
             loadSavedMorphology();
             applyLanguageUI();
-            initCookieConsent();
             initAuth();
-            checkInAppBrowser();
         };
 
         async function initAuth() {
+            let session = null;
+            if (supabaseClient) {
+                // getSession attende che Supabase abbia letto l'eventuale token nell'URL.
+                try { ({ data: { session } } = await supabaseClient.auth.getSession()); } catch (e) {}
+            }
+            cleanAuthParamsFromUrl();
+            initCookieConsent();
             if (!supabaseClient) return;
-            const { data: { session } } = await supabaseClient.auth.getSession();
             await updateAuthUI(session);
             supabaseClient.auth.onAuthStateChange((event, session) => {
                 // Il token rinnovato non cambia l'utente: niente ricarica completa.
@@ -2412,6 +2480,7 @@
 
             if (currentUser) {
                 closeAuthModal();
+                maybeTrackRegistration(currentUser);
                 const pending = storageGet('biodog_pending_query');
                 const input = $('queryInput');
                 if (pending && input && !input.value) input.value = pending;
@@ -2513,7 +2582,11 @@
             const poll = async () => {
                 attempts++;
                 await refreshUsage();
-                if (isUserPremium) { if (banner) banner.innerHTML = T().stripeActive; return; }
+                if (isUserPremium) {
+                    if (banner) banner.innerHTML = T().stripeActive;
+                    trackSubscription(userPlanTier);
+                    return;
+                }
                 if (attempts < 8) setTimeout(poll, 2500);
                 else if (banner) banner.innerText = T().stripePending;
             };
@@ -2893,6 +2966,11 @@
 
         async function handleGoogleLogin() {
             if (!supabaseClient) return;
+            if (IS_IN_APP_BROWSER) {
+                openAuthModalEmail();
+                setTimeout(() => $('authEmail')?.focus(), 50);
+                return;
+            }
             await supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
         }
 
@@ -2949,6 +3027,7 @@
                 openAuthModal(true, esc(t.msgCheckoutLogin));
                 return;
             }
+            trackEvent('checkout_start', { tier }, 'InitiateCheckout', { value: PLAN_PRICES_EUR[tier], currency: 'EUR' });
             try {
                 const data = await apiFetch('/api/v1/stripe/create-checkout-session', { method: 'POST', json: { tier }, timeoutMs: 60000 });
                 if (data?.checkout_url) window.location.href = data.checkout_url;
