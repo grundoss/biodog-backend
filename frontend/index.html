@@ -1692,6 +1692,9 @@
                 msgCbarqLogin: "📋 <strong>Registrati gratis</strong> per salvare il profilo nel Diario del tuo cane!",
                 errEngine: "Il motore di analisi non risponde. Riprova tra poco: nessun credito è stato usato.",
                 errNetwork: "Impossibile contattare BioDog. Controlla la connessione e riprova: nessun credito è stato usato.",
+                errTimeout: "BioDog sta impiegando troppo tempo a rispondere. Riprova tra poco: nessun credito è stato usato.",
+                errSessionTimeout: "La sessione di accesso non risponde. Chiudi le altre schede di BioDog e ricarica la pagina.",
+                errGoogleLogin: "Accesso con Google non riuscito. Riprova, oppure accedi con la tua email.",
                 errService: "Servizio temporaneamente non disponibile. Riprova tra poco.",
                 errVideoTooLarge: "Il filmato supera i 25MB. Carica una clip più breve!",
                 errVideoType: "Formato video non supportato: usa MP4, MOV o WebM.",
@@ -1947,6 +1950,9 @@
                 msgCbarqLogin: "📋 <strong>Sign up free</strong> to save the profile in your dog's Logbook!",
                 errEngine: "The analysis engine is not responding. Please retry shortly: no credit was used.",
                 errNetwork: "Could not reach BioDog. Check your connection and retry: no credit was used.",
+                errTimeout: "BioDog is taking too long to answer. Please retry shortly: no credit was used.",
+                errSessionTimeout: "Your sign-in session is not responding. Close other BioDog tabs and reload the page.",
+                errGoogleLogin: "Google sign-in failed. Please retry, or sign in with your email.",
                 errService: "Service temporarily unavailable. Please retry shortly.",
                 errVideoTooLarge: "Video exceeds 25MB max size. Please pick a shorter clip!",
                 errVideoType: "Unsupported video format: use MP4, MOV or WebM.",
@@ -2219,12 +2225,26 @@
             constructor(message, status, code) { super(message); this.status = status; this.code = code; }
         }
 
+        // Una promessa che non si risolve mai (es. sessione "inceppata" tra più schede) non deve
+        // bloccare la pagina: dopo `ms` millisecondi rifiutiamo con un errore riconoscibile.
+        function withTimeout(promise, ms, code) {
+            let timer;
+            return Promise.race([
+                promise,
+                new Promise((_, reject) => { timer = setTimeout(() => reject(new ApiError(code, 0, code)), ms); })
+            ]).finally(() => clearTimeout(timer));
+        }
+
         async function getAccessToken() {
             if (!supabaseClient) return null;
+            let result;
             try {
-                const { data } = await supabaseClient.auth.getSession();
-                return data?.session?.access_token || null;
-            } catch (e) { return null; }
+                result = await withTimeout(supabaseClient.auth.getSession(), 8000, 'session_timeout');
+            } catch (e) {
+                if (e.code === 'session_timeout') throw e;
+                return null;
+            }
+            return result?.data?.session?.access_token || null;
         }
 
         // Identificativo anonimo del browser: il limite dell'anteprima ospite vale per browser,
@@ -2250,7 +2270,7 @@
             try {
                 response = await fetch(`${BACKEND_API_BASE}${path}`, { method, headers, body, signal: controller.signal });
             } catch (e) {
-                throw new ApiError(e.message, 0, 'network');
+                throw new ApiError(e.message, 0, e.name === 'AbortError' ? 'timeout' : 'network');
             } finally {
                 clearTimeout(timer);
             }
@@ -2285,6 +2305,10 @@
                     showError(t.errEngine); return;
                 case 'network':
                     showError(t.errNetwork); return;
+                case 'timeout':
+                    showError(t.errTimeout); return;
+                case 'session_timeout':
+                    showError(t.errSessionTimeout); return;
                 default:
                     showError(t.errService);
             }
@@ -2652,7 +2676,8 @@
             let session = null;
             if (supabaseClient) {
                 // getSession attende che Supabase abbia letto l'eventuale token nell'URL.
-                try { ({ data: { session } } = await supabaseClient.auth.getSession()); } catch (e) {}
+                try { ({ data: { session } } = await withTimeout(supabaseClient.auth.getSession(), 8000, 'session_timeout')); }
+                catch (e) { if (e.code === 'session_timeout') showError(T().errSessionTimeout); }
             }
             cleanAuthParamsFromUrl();
             initCookieConsent();
@@ -3340,7 +3365,18 @@
                 setTimeout(() => $('authEmail')?.focus(), 50);
                 return;
             }
-            await supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+            try {
+                const { error } = await withTimeout(
+                    supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }),
+                    10000, 'session_timeout');
+                if (error) throw error;
+            } catch (e) {
+                console.error("Google login error:", e);
+                trackEvent('google_login_error', { code: e.code || e.status || 'unknown' });
+                const message = e.code === 'session_timeout' ? T().errSessionTimeout : T().errGoogleLogin;
+                if (!$('authModal')?.classList.contains('hidden')) showFormError('authError', message);
+                else showError(message);
+            }
         }
 
         // Due moduli di accesso con codice: il modale e il riquadro sopra la risposta sfocata.
