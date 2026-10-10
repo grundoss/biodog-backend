@@ -1,5 +1,7 @@
 import asyncio
 import base64
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -177,6 +179,10 @@ CAMPI DA COMPILARE
   - label: 2-5 parole (es. "Comportamento normale", "Da lavorarci con calma", "Serve un veterinario oggi"); reason: 1 frase che motiva il livello.
 - hypotheses: 2-3 ipotesi funzionali in ordine di probabilità. Per ciascuna: title (3-7 parole), likelihood ("high", "medium" o "low", coerente con l'ordine), why (1 frase sul meccanismo), observe (2-3 segnali concreti o elementi di contesto che il proprietario può osservare per confermarla o escluderla).
 - glossary: 2-6 termini tecnici che hai usato nei testi (scritti esattamente come compaiono), ciascuno con una definizione semplice di massimo 20 parole.
+- follow_up: UNA domanda per il proprietario che aiuti di più a distinguere tra le ipotesi (un segnale del corpo osservabile o un elemento di contesto: quando, da quando, con chi). question: massimo 15 parole. options: 3-4 risposte brevi (massimo 8 parole), che si escludono a vicenda; l'ultima è sempre "Non lo so / non l'ho notato" (in inglese "I don't know / didn't notice").
+
+APPROFONDIMENTO
+Se dopo la descrizione trovi un blocco APPROFONDIMENTO con la risposta del proprietario a una tua domanda, usala per aggiornare l'analisi: riordina le ipotesi (alza quella confermata, abbassa o togli quelle escluse), rivedi l'urgenza e rendi i passi più mirati. Se la risposta è "non lo so", spiega quali segnali osservare la prossima volta. In questo caso imposta "follow_up" a null.
 - steps: 3-5 azioni in ordine di priorità (prima la sicurezza, poi la gestione, poi l'esercizio), una o due frasi ciascuna, con il verbo all'imperativo; il primo esercizio spiegato in modo operativo.
 - forbidden: 2-4 errori comuni, ciascuno con il motivo etologico in poche parole.
 
@@ -202,7 +208,8 @@ FORMATO: restituisci ESCLUSIVAMENTE un JSON valido (senza testo introduttivo né
   "forbidden": ["...", "..."],
   "urgency": {"level": "green | yellow | red", "label": "...", "reason": "..."},
   "hypotheses": [{"title": "...", "likelihood": "high | medium | low", "why": "...", "observe": ["...", "..."]}],
-  "glossary": [{"term": "...", "definition": "..."}]
+  "glossary": [{"term": "...", "definition": "..."}],
+  "follow_up": {"question": "...", "options": ["...", "...", "Non lo so / non l'ho notato"]}
 }"""
 
 def _extract_clean_json(raw_text: str) -> dict:
@@ -262,6 +269,20 @@ def _normalize_glossary(raw) -> list:
             items.append({"term": term, "definition": definition})
     return items[:8]
 
+def _normalize_follow_up(raw) -> Optional[dict]:
+    if not isinstance(raw, dict):
+        return None
+    question = _short(raw.get("question"), 200)
+    options, seen = [], set()
+    for o in raw.get("options") if isinstance(raw.get("options"), list) else []:
+        o = _short(o, 80)
+        if o and o.lower() not in seen:
+            seen.add(o.lower())
+            options.append(o)
+    if len(question) < 3 or len(options) < 2:
+        return None
+    return {"question": question, "options": options[:4]}
+
 def _normalize_synthesis(raw: dict) -> dict:
     """Garantisce che la risposta del modello abbia sempre la forma attesa dal frontend."""
     if not isinstance(raw, dict):
@@ -291,6 +312,7 @@ def _normalize_synthesis(raw: dict) -> dict:
         "urgency": _normalize_urgency(raw.get("urgency")),
         "hypotheses": _normalize_hypotheses(raw.get("hypotheses")),
         "glossary": _normalize_glossary(raw.get("glossary")),
+        "follow_up": _normalize_follow_up(raw.get("follow_up")),
     }
     if not synth["thought"] and not synth["explanation"]:
         raise ValueError("Risposta del modello vuota")
@@ -607,6 +629,51 @@ def _record_guest(browser_key: str, ip_key: str) -> None:
             for key in [k for k, v in _guest_hits.items() if not v or v[-1] <= cutoff]:
                 del _guest_hits[key]
 
+# ==================== APPROFONDIMENTO (FOLLOW-UP) ====================
+# L'approfondimento non consuma crediti: un token firmato lo lega all'utente, alla descrizione,
+# alla domanda e al profilo usati, così non può diventare una nuova analisi gratuita.
+FOLLOW_UP_TTL_SECONDS = 2 * 3600
+
+def _follow_up_key() -> bytes:
+    secret = os.getenv("FOLLOW_UP_SECRET", "").strip()
+    if secret:
+        return secret.encode()
+    return hashlib.sha256(f"biodog-follow-up:{SUPABASE_SERVICE_KEY}".encode()).digest()
+
+def _follow_up_signature(user_id: str, user_text: str, follow_up: dict, morph: dict, exp: int) -> str:
+    message = json.dumps([user_id, user_text, follow_up["question"], follow_up["options"],
+                          [morph[k] for k in sorted(morph)], exp], ensure_ascii=False, separators=(",", ":"))
+    return hmac.new(_follow_up_key(), message.encode(), hashlib.sha256).hexdigest()
+
+def _issue_follow_up_token(user_id: str, user_text: str, follow_up: dict, morph: dict) -> str:
+    exp = int(time.time()) + FOLLOW_UP_TTL_SECONDS
+    return f"{exp}.{_follow_up_signature(user_id, user_text, follow_up, morph, exp)}"
+
+def _verify_follow_up_token(token: str, user_id: str, user_text: str, follow_up: dict, morph: dict) -> bool:
+    try:
+        exp_text, signature = token.split(".", 1)
+        exp = int(exp_text)
+    except (ValueError, AttributeError):
+        return False
+    if exp < time.time():
+        return False
+    return hmac.compare_digest(signature, _follow_up_signature(user_id, user_text, follow_up, morph, exp))
+
+def _morph_of(req: "TransductionRequest") -> dict:
+    return req.model_dump(include=set(DEFAULT_MORPHOLOGY))
+
+def _analysis_prompt(req: "TransductionRequest", user: Optional[dict], extra: str = "") -> Tuple[str, str]:
+    bio = SensoryEngine.compute(req)
+    target_lang, lang_directive = _lang_directive(req.lang)
+    prompt = (
+        f"{SYSTEM_PROMPT}\n\nTARGET LANGUAGE: {lang_directive}\n\n"
+        f"Comportamento osservato / Observed behavior: \"{req.user_text}\"\n"
+        f"{_profile_text(req, bio)}"
+        f"{_dog_name_text(user)}"
+        f"{extra}"
+    )
+    return prompt, target_lang
+
 # ==================== ENDPOINTS ====================
 
 @app.get("/")
@@ -680,15 +747,7 @@ async def transduce(req: TransductionRequest, request: Request, user: Optional[d
     if tier != "pro":
         req = req.model_copy(update=DEFAULT_MORPHOLOGY)
 
-    bio = SensoryEngine.compute(req)
-    target_lang, lang_directive = _lang_directive(req.lang)
-
-    user_prompt = (
-        f"{SYSTEM_PROMPT}\n\nTARGET LANGUAGE: {lang_directive}\n\n"
-        f"Comportamento osservato / Observed behavior: \"{req.user_text}\"\n"
-        f"{_profile_text(req, bio)}"
-        f"{_dog_name_text(user)}"
-    )
+    user_prompt, target_lang = _analysis_prompt(req, user)
     synth, api_err = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, user_prompt)
     if not synth:
         # Nessun credito consumato se il motore non risponde.
@@ -715,6 +774,10 @@ async def transduce(req: TransductionRequest, request: Request, user: Optional[d
         synth = _lock_for_guest(synth)
         usage = None
 
+    follow_up_token = None
+    if user and synth.get("follow_up"):
+        follow_up_token = _issue_follow_up_token(user["id"], req.user_text, synth["follow_up"], _morph_of(req))
+
     return {
         "status": "success",
         "engine": ACTIVE_MODEL,
@@ -722,6 +785,44 @@ async def transduce(req: TransductionRequest, request: Request, user: Optional[d
         "locked": user is None,
         "sunday_token_used": sunday_token_used,
         "usage": usage,
+        "follow_up_token": follow_up_token,
+        "neural_synthesis": synth,
+    }
+
+class RefineRequest(TransductionRequest):
+    question: str = Field(..., min_length=3, max_length=200)
+    options: list = Field(..., min_length=2, max_length=4)
+    answer: str = Field(..., min_length=1, max_length=80)
+    token: str = Field(..., min_length=10, max_length=200)
+
+@app.post("/api/v1/umwelt/refine")
+async def refine(req: RefineRequest, user: dict = Depends(required_user)):
+    options = [o for o in req.options if isinstance(o, str)]
+    if len(options) != len(req.options) or any(len(o) > 80 for o in options):
+        raise api_error(400, "invalid_follow_up", "Domanda di approfondimento non valida.")
+    if req.answer not in options:
+        raise api_error(400, "invalid_answer", "Risposta non valida.")
+    follow_up = {"question": req.question, "options": options}
+    if not _verify_follow_up_token(req.token, user["id"], req.user_text, follow_up, _morph_of(req)):
+        raise api_error(403, "follow_up_expired", "L'approfondimento è scaduto: rifai l'analisi.")
+
+    extra = (
+        "\n\nAPPROFONDIMENTO / FOLLOW-UP:\n"
+        f"Domanda posta al proprietario / Question asked: \"{req.question}\"\n"
+        f"Risposta del proprietario / Owner's answer: \"{req.answer}\""
+    )
+    user_prompt, target_lang = _analysis_prompt(req, user, extra)
+    synth, api_err = await asyncio.to_thread(_call_gemini_api, GEMINI_API_KEY, user_prompt)
+    if not synth:
+        print(f"[BioDog] Gemini approfondimento fallito: {api_err}")
+        raise api_error(502, "engine_unavailable", "Il motore di analisi non risponde. Riprova tra poco.")
+    synth["follow_up"] = None
+    return {
+        "status": "success",
+        "engine": ACTIVE_MODEL,
+        "lang": target_lang,
+        "locked": False,
+        "refined": True,
         "neural_synthesis": synth,
     }
 
@@ -759,6 +860,7 @@ async def transduce_video(
     if not synth:
         print(f"[BioDog] Gemini video fallito: {api_err}")
         raise api_error(502, "engine_unavailable", "Impossibile analizzare il video in questo momento. Riprova tra poco.")
+    synth["follow_up"] = None  # l'approfondimento è previsto solo per le analisi testuali
     return {"status": "success", "engine": f"{ACTIVE_MODEL}-vision", "lang": target_lang, "locked": False, "neural_synthesis": synth}
 
 # ==================== STRIPE ====================
