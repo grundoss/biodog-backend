@@ -305,3 +305,10 @@ def test_fetch_user_reads_dog_name(monkeypatch):
     monkeypatch.setattr(main.urllib.request, "urlopen", lambda req, timeout=10: Resp())
     monkeypatch.setattr(main, "SUPABASE_SERVICE_KEY", "x")
     assert main._fetch_supabase_user("tok") == {"id": "u1", "email": "a@b.it", "dog_name": "Briciola"}
+
+
+def test_prompt_safety_rules():
+    # Regole emerse dal confronto con ChatGPT: persone ferite, emergenze, farmaci, fughe, bambini.
+    for phrase in ("primo soccorso", "112", "per uso umano", "prevenire le fughe", "Bambini",
+                   "non rinforza la paura", "peso spostato indietro", "comportamento appreso"):
+        assert phrase in main.SYSTEM_PROMPT, phrase
