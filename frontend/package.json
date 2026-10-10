@@ -1,0 +1,11 @@
+{
+  "name": "biodog-frontend",
+  "private": true,
+  "description": "Genera il CSS di Tailwind e lo inserisce in index.html",
+  "scripts": {
+    "build:css": "node build-css.mjs"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}
