@@ -315,7 +315,7 @@ def test_fetch_user_reads_dog_name(monkeypatch):
 def test_prompt_safety_rules():
     # Regole emerse dal confronto con ChatGPT: persone ferite, emergenze, farmaci, fughe, bambini.
     for phrase in ("primo soccorso", "112", "per uso umano", "prevenire le fughe", "Bambini",
-                   "non rinforza la paura", "peso spostato indietro", "comportamento appreso"):
+                   "non rinforza la paura", "peso spostato indietro", "strategia appresa"):
         assert phrase in main.SYSTEM_PROMPT, phrase
 
 
@@ -409,3 +409,10 @@ def test_normalize_follow_up():
     assert main._normalize_follow_up({"question": "Coda?", "options": ["a"]}) is None
     fu = main._normalize_follow_up({"question": "Coda?", "options": ["a", "A", "b", "c", "d", "e"]})
     assert fu == {"question": "Coda?", "options": ["a", "b", "c", "d"]}
+
+
+def test_prompt_is_cognitive_ethology():
+    for phrase in ("etologo cognitivista", "soggetto", "valutazione cognitiva", "Motivazioni", "aspettative",
+                   "base sicura", "conflitto tra motivazioni", "inferenze"):
+        assert phrase in main.SYSTEM_PROMPT, phrase
+    assert "etologo clinico" not in main.SYSTEM_PROMPT
