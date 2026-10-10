@@ -3,3 +3,4 @@ uvicorn==0.28.0
 pydantic==2.6.4
 stripe
 python-multipart
+tzdata
