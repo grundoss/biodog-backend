@@ -111,15 +111,47 @@ def test_engine_failure_does_not_consume_trial(db, client, monkeypatch):
 
 
 def test_guest_gets_one_locked_preview(db, client):
-    r = client.post("/api/v1/umwelt/transduce", json=BODY)
+    guest = {"X-Guest-Id": "guest-aaaaaaaaaaaaaaaa"}
+    r = client.post("/api/v1/umwelt/transduce", json=BODY, headers=guest)
     assert r.status_code == 200
     data = r.json()
     assert data["locked"] is True
     assert data["neural_synthesis"]["steps"] == []
     assert data["neural_synthesis"]["thought"] == "Odore nuovo!"
-    r = client.post("/api/v1/umwelt/transduce", json=BODY)
+    r = client.post("/api/v1/umwelt/transduce", json=BODY, headers=guest)
     assert r.status_code == 401
     assert r.json()["detail"]["code"] == "auth_required"
+
+
+def test_guests_sharing_an_ip_each_get_a_preview(db, client, monkeypatch):
+    # Rete mobile con CGNAT: browser diversi, stesso IP pubblico.
+    same_ip = {"X-Forwarded-For": "151.0.0.1"}
+    for i in range(main.GUEST_IP_DAILY_CAP):
+        r = client.post("/api/v1/umwelt/transduce", json=BODY, headers={**same_ip, "X-Guest-Id": f"guest-{i:016d}"})
+        assert r.status_code == 200, (i, r.text)
+    # Oltre il tetto anti-abuso per IP si blocca anche con un id nuovo.
+    r = client.post("/api/v1/umwelt/transduce", json=BODY, headers={**same_ip, "X-Guest-Id": "guest-new-0000000000"})
+    assert r.status_code == 401
+    # Un altro IP non è toccato dal tetto.
+    r = client.post("/api/v1/umwelt/transduce", json=BODY, headers={"X-Forwarded-For": "151.0.0.2", "X-Guest-Id": "guest-new-0000000000"})
+    assert r.status_code == 200
+
+
+def test_guest_without_id_falls_back_to_ip(db, client):
+    headers = {"X-Forwarded-For": "151.0.0.9"}
+    assert client.post("/api/v1/umwelt/transduce", json=BODY, headers=headers).status_code == 200
+    assert client.post("/api/v1/umwelt/transduce", json=BODY, headers=headers).status_code == 401
+    # Un id malformato non aggira il limite.
+    bad = {**headers, "X-Guest-Id": "x"}
+    assert client.post("/api/v1/umwelt/transduce", json=BODY, headers=bad).status_code == 401
+
+
+def test_cors_allows_guest_id_header(client, monkeypatch):
+    r = client.options("/api/v1/umwelt/transduce", headers={
+        "Origin": "https://www.biodog.io", "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,x-guest-id"})
+    assert r.status_code == 200
+    assert "x-guest-id" in r.headers.get("access-control-allow-headers", "").lower()
 
 
 def test_invalid_token_rejected(db, client):

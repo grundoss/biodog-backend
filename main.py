@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import threading
 import time
 import traceback
@@ -41,7 +42,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["Authorization", "Content-Type", "X-Guest-Id"],
 )
 
 # ==================== VARIABILI D'AMBIENTE ====================
@@ -66,7 +67,8 @@ if stripe and STRIPE_SECRET_KEY:
 FREE_TRIAL_LIMIT = 2          # traduzioni gratuite a vita per utente registrato
 PREMIUM_MONTHLY_LIMIT = 100   # piano Premium (1,99 €)
 SUNDAY_TOKEN_LIMIT = 1        # consulto omaggio della domenica per utenti free
-GUEST_LIMIT = 1               # anteprima senza account, per IP
+GUEST_LIMIT = 1               # anteprima senza account, per browser (X-Guest-Id)
+GUEST_IP_DAILY_CAP = 30       # tetto anti-abuso per IP: molti utenti mobili condividono lo stesso IP (CGNAT)
 GUEST_WINDOW_SECONDS = 24 * 3600
 MAX_VIDEO_BYTES = 25 * 1024 * 1024
 
@@ -469,9 +471,12 @@ def _public_usage(snap: dict) -> dict:
         "has_customer": snap["has_customer"],
     }
 
-# Anteprima ospiti: contatore in memoria per IP (si azzera al riavvio del server).
+# Anteprima ospiti: contatori in memoria (si azzerano al riavvio del server).
+# Il limite vale per browser (identificativo anonimo X-Guest-Id); per IP c'è solo un tetto
+# più alto, perché gli operatori mobili fanno uscire molti clienti dallo stesso IP.
 _guest_hits: dict = {}
 _guest_lock = threading.Lock()
+_GUEST_ID_RE = re.compile(r"^[A-Za-z0-9-]{16,64}$")
 
 def _client_ip(request: Request) -> str:
     # Render aggiunge l'IP reale in coda a X-Forwarded-For: l'ultimo valore è quello affidabile.
@@ -480,18 +485,31 @@ def _client_ip(request: Request) -> str:
         return fwd.split(",")[-1].strip()
     return request.client.host if request.client else "unknown"
 
-def _guest_allowed(ip: str) -> bool:
+def _guest_keys(request: Request) -> Tuple[str, str]:
+    ip = _client_ip(request)
+    guest_id = (request.headers.get("x-guest-id") or "").strip()
+    # Senza un identificativo valido (vecchi client) il limite per browser ricade sull'IP.
+    browser_key = f"id:{guest_id}" if _GUEST_ID_RE.match(guest_id) else f"ipkey:{ip}"
+    return browser_key, f"ip:{ip}"
+
+def _recent_hits(key: str, cutoff: float) -> list:
+    hits = [t for t in _guest_hits.get(key, []) if t > cutoff]
+    _guest_hits[key] = hits
+    return hits
+
+def _guest_allowed(browser_key: str, ip_key: str) -> bool:
     cutoff = time.time() - GUEST_WINDOW_SECONDS
     with _guest_lock:
-        hits = [t for t in _guest_hits.get(ip, []) if t > cutoff]
-        _guest_hits[ip] = hits
-        return len(hits) < GUEST_LIMIT
+        return (len(_recent_hits(browser_key, cutoff)) < GUEST_LIMIT
+                and len(_recent_hits(ip_key, cutoff)) < GUEST_IP_DAILY_CAP)
 
-def _record_guest(ip: str) -> None:
+def _record_guest(browser_key: str, ip_key: str) -> None:
+    now = time.time()
     with _guest_lock:
-        _guest_hits.setdefault(ip, []).append(time.time())
-        if len(_guest_hits) > 20000:
-            cutoff = time.time() - GUEST_WINDOW_SECONDS
+        _guest_hits.setdefault(browser_key, []).append(now)
+        _guest_hits.setdefault(ip_key, []).append(now)
+        if len(_guest_hits) > 50000:
+            cutoff = now - GUEST_WINDOW_SECONDS
             for key in [k for k, v in _guest_hits.items() if not v or v[-1] <= cutoff]:
                 del _guest_hits[key]
 
@@ -519,7 +537,7 @@ def _lang_directive(lang: Optional[str]) -> Tuple[str, str]:
 async def transduce(req: TransductionRequest, request: Request, user: Optional[dict] = Depends(optional_user)):
     snap = None
     bucket_key = None
-    guest_ip = None
+    guest_keys = None
 
     if user:
         try:
@@ -536,8 +554,8 @@ async def transduce(req: TransductionRequest, request: Request, user: Optional[d
             raise api_error(402, block_code, msg)
         tier = snap["tier"]
     else:
-        guest_ip = _client_ip(request)
-        if not _guest_allowed(guest_ip):
+        guest_keys = _guest_keys(request)
+        if not _guest_allowed(*guest_keys):
             raise api_error(401, "auth_required", "Registrati gratis per continuare.")
         tier = "guest"
 
@@ -571,7 +589,7 @@ async def transduce(req: TransductionRequest, request: Request, user: Optional[d
                 print(f"[BioDog] Incremento quota fallito per {user['id']}: {e}")
         usage = _public_usage(snap)
     else:
-        _record_guest(guest_ip)
+        _record_guest(*guest_keys)
         synth = _lock_for_guest(synth)
         usage = None
 
